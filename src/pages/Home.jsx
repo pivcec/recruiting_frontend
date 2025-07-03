@@ -1,5 +1,5 @@
-const Home = () => {
-  return <div>hello</div>;
-};
+import MapWithList from "../components/MapWithList";
 
-export default Home;
+export default function App() {
+  return <MapWithList />;
+}
