@@ -14,11 +14,9 @@ const MarkerClusterGroup = ({ points }) => {
       map.addLayer(markerClusterGroupRef.current);
     }
 
-    // Clear previous markers
     markerClusterGroupRef.current.clearLayers();
 
-    // Add new markers
-    points.forEach(({ lat, lng }) => {
+    points.forEach(({ id, lat, lng }) => {
       const marker = L.marker([lat, lng]);
       markerClusterGroupRef.current.addLayer(marker);
     });
@@ -34,16 +32,18 @@ const MarkerClusterGroup = ({ points }) => {
   return null;
 };
 
-// === Listen for map move/zoom and report bounds ===
-const MapBoundsListener = ({ onBoundsChange }) => {
-  useMapEvent("moveend", function () {
-    const map = this; // ✅ 'this' is the map instance
+const MapBoundsListener = ({ onViewportChange, skipNextRef }) => {
+  useMapEvent("moveend", () => {
+    if (skipNextRef.current) {
+      skipNextRef.current = false;
+      return;
+    }
 
-    const bounds = map.getBounds();
+    const bounds = useMap().getBounds();
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
-    onBoundsChange({
+    onViewportChange({
       sw: { lat: sw.lat, lng: sw.lng },
       ne: { lat: ne.lat, lng: ne.lng },
     });
@@ -52,20 +52,48 @@ const MapBoundsListener = ({ onBoundsChange }) => {
   return null;
 };
 
-// === Main Map Component ===
-export default function MyMap({ points, onBoundsChange }) {
+const MapBoundsUpdater = ({ bounds, onInternalViewportChange }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (bounds?.sw && bounds?.ne) {
+      const leafletBounds = L.latLngBounds(
+        [bounds.sw.lat, bounds.sw.lng],
+        [bounds.ne.lat, bounds.ne.lng]
+      );
+      onInternalViewportChange?.();
+      map.fitBounds(leafletBounds, { padding: [20, 20] });
+    }
+  }, [bounds, map, onInternalViewportChange]);
+
+  return null;
+};
+
+export default function Map({ points, onViewportChange, bounds, skipNextRef }) {
+  const handleInternalViewportChange = () => {
+    skipNextRef.current = true;
+  };
+
   return (
     <MapContainer
       center={[38.03598414183243, -95.14190792741904]}
       zoom={4}
-      style={{ height: "100vh", width: "100%" }}
+      style={{ height: "100%", width: "100%" }}
+      scrollWheelZoom={true}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="&copy; OpenStreetMap contributors"
       />
       <MarkerClusterGroup points={points} />
-      <MapBoundsListener onBoundsChange={onBoundsChange} />
+      <MapBoundsListener
+        onViewportChange={onViewportChange}
+        skipNextRef={skipNextRef}
+      />
+      <MapBoundsUpdater
+        bounds={bounds}
+        onInternalViewportChange={handleInternalViewportChange}
+      />
     </MapContainer>
   );
 }
