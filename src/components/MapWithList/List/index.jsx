@@ -1,6 +1,28 @@
 import { useEffect, useState } from "react";
 
-const ITEMS_PER_PAGE = 30;
+const ITEMS_PER_PAGE = 20;
+
+// Capitalize first letter of each name part
+const formatName = (profile) => {
+  if (!profile?.data?.hits?.hits?.[0]?._source?.content)
+    return "Unnamed Profile";
+
+  try {
+    const parsed = JSON.parse(profile.data.hits.hits[0]._source.content);
+    const basicInfo = parsed.basicInformation || {};
+
+    const first = basicInfo.firstName?.toLowerCase() || "";
+    const middle = basicInfo.middleName?.toLowerCase() || "";
+    const last = basicInfo.lastName?.toLowerCase() || "";
+
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+    return [first, middle, last].filter(Boolean).map(cap).join(" ");
+  } catch (e) {
+    console.error("Name parse error:", e);
+    return "Unnamed Profile";
+  }
+};
 
 const List = ({ points }) => {
   const [page, setPage] = useState(1);
@@ -48,24 +70,6 @@ const List = ({ points }) => {
     setPage((prev) => Math.min(totalPages, prev + 1));
   };
 
-  const formatName = (profile) => {
-    try {
-      const hits = profile?.data?.hits?.hits;
-      const content = hits?.[0]?._source?.content;
-      if (!content) return "Unnamed Profile";
-
-      const parsed = JSON.parse(content);
-      const info = parsed?.basicInformation;
-      if (!info) return "Unnamed Profile";
-
-      const { firstName = "", middleName = "", lastName = "" } = info;
-      return [firstName, middleName, lastName].filter(Boolean).join(" ");
-    } catch (err) {
-      console.error("Error parsing profile name:", err);
-      return "Unnamed Profile";
-    }
-  };
-
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold mb-2">Profiles (Page {page})</h2>
@@ -73,7 +77,7 @@ const List = ({ points }) => {
         {profiles.length > 0 ? (
           profiles.map((profile) => (
             <li key={profile._id} className="border-b py-2">
-              {formatName(profile)}
+              {formatName(profile)} – ID: {profile._id}
             </li>
           ))
         ) : (
@@ -81,7 +85,7 @@ const List = ({ points }) => {
         )}
       </ul>
 
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between">
         <button
           className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
           onClick={handlePrev}

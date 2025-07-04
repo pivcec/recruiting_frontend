@@ -32,48 +32,71 @@ const MarkerClusterGroup = ({ points }) => {
   return null;
 };
 
-const MapBoundsListener = ({ onViewportChange, skipNextRef }) => {
-  useMapEvent("moveend", () => {
-    if (skipNextRef.current) {
-      skipNextRef.current = false;
-      return;
-    }
+// === Passive Bounds Observer (Live Tracker) ===
+const MapBoundsObserver = ({ onLiveBoundsChange }) => {
+  const map = useMap();
+  const lastBoundsRef = useRef(null);
+  const TOLERANCE = 0.0001;
 
-    const bounds = useMap().getBounds();
+  useMapEvent("moveend", () => {
+    const bounds = map.getBounds();
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
-    onViewportChange({
+    const current = {
       sw: { lat: sw.lat, lng: sw.lng },
       ne: { lat: ne.lat, lng: ne.lng },
-    });
+    };
+
+    const prev = lastBoundsRef.current;
+    const changed =
+      !prev ||
+      Math.abs(prev.sw.lat - current.sw.lat) > TOLERANCE ||
+      Math.abs(prev.sw.lng - current.sw.lng) > TOLERANCE ||
+      Math.abs(prev.ne.lat - current.ne.lat) > TOLERANCE ||
+      Math.abs(prev.ne.lng - current.ne.lng) > TOLERANCE;
+
+    if (changed) {
+      lastBoundsRef.current = current;
+      console.log("🔍 Live bounds updated:", current);
+      onLiveBoundsChange?.(current);
+    }
   });
 
   return null;
 };
 
-const MapBoundsUpdater = ({ bounds, onInternalViewportChange }) => {
+// === Controlled Bounds Setter (from parent state) ===
+const MapBoundsSetter = ({ forceBounds }) => {
   const map = useMap();
+  const prevBoundsRef = useRef(null);
 
   useEffect(() => {
-    if (bounds?.sw && bounds?.ne) {
+    if (!forceBounds?.sw || !forceBounds?.ne) return;
+
+    const prev = prevBoundsRef.current;
+    const changed =
+      !prev ||
+      prev.sw.lat !== forceBounds.sw.lat ||
+      prev.sw.lng !== forceBounds.sw.lng ||
+      prev.ne.lat !== forceBounds.ne.lat ||
+      prev.ne.lng !== forceBounds.ne.lng;
+
+    if (changed) {
       const leafletBounds = L.latLngBounds(
-        [bounds.sw.lat, bounds.sw.lng],
-        [bounds.ne.lat, bounds.ne.lng]
+        [forceBounds.sw.lat, forceBounds.sw.lng],
+        [forceBounds.ne.lat, forceBounds.ne.lng]
       );
-      onInternalViewportChange?.();
       map.fitBounds(leafletBounds, { padding: [20, 20] });
+      prevBoundsRef.current = forceBounds;
     }
-  }, [bounds, map, onInternalViewportChange]);
+  }, [forceBounds, map]);
 
   return null;
 };
 
-export default function Map({ points, onViewportChange, bounds, skipNextRef }) {
-  const handleInternalViewportChange = () => {
-    skipNextRef.current = true;
-  };
-
+// === Main Exported Map ===
+export default function Map({ points, forceBounds, onLiveBoundsChange }) {
   return (
     <MapContainer
       center={[38.03598414183243, -95.14190792741904]}
@@ -86,14 +109,8 @@ export default function Map({ points, onViewportChange, bounds, skipNextRef }) {
         attribution="&copy; OpenStreetMap contributors"
       />
       <MarkerClusterGroup points={points} />
-      <MapBoundsListener
-        onViewportChange={onViewportChange}
-        skipNextRef={skipNextRef}
-      />
-      <MapBoundsUpdater
-        bounds={bounds}
-        onInternalViewportChange={handleInternalViewportChange}
-      />
+      <MapBoundsObserver onLiveBoundsChange={onLiveBoundsChange} />
+      <MapBoundsSetter forceBounds={forceBounds} />
     </MapContainer>
   );
 }

@@ -1,17 +1,38 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Map from "./Map";
 import ProfileList from "./List";
 import StateDropdown from "./StateDropdown";
 import statePolygons from "../../data/state_polygons_lowres_dict.json";
 
 const MapWithList = () => {
-  const [bounds, setBounds] = useState({
+  const [controlledBounds, setControlledBounds] = useState({
     sw: { lat: 24.396308, lng: -125.0 },
     ne: { lat: 49.384358, lng: -66.93457 },
   });
+  const [liveBounds, setLiveBounds] = useState(null);
   const [selectedState, setSelectedState] = useState(null);
   const [points, setPoints] = useState([]);
   const skipNextRef = useRef(false); // 🧭 used to avoid zoom loop
+
+  const livePoints = useMemo(() => {
+    if (!liveBounds) return [];
+
+    return points.filter(({ lat, lng }) => {
+      return (
+        lat >= liveBounds.sw.lat &&
+        lat <= liveBounds.ne.lat &&
+        lng >= liveBounds.sw.lng &&
+        lng <= liveBounds.ne.lng
+      );
+    });
+  }, [points, liveBounds]);
+
+  // Just to monitor what's happening
+  useEffect(() => {
+    if (liveBounds) {
+      console.log("📦 Live Bounds in parent:", liveBounds);
+    }
+  }, [liveBounds]);
 
   useEffect(() => {
     const fetchPointsByState = async () => {
@@ -52,22 +73,14 @@ const MapWithList = () => {
       });
     });
 
-    const newBounds = {
+    const newControlledBounds = {
       sw: { lat: minLat, lng: minLng },
       ne: { lat: maxLat, lng: maxLng },
     };
 
-    setBounds(newBounds);
+    setControlledBounds(newControlledBounds);
     skipNextRef.current = true; // prevent triggering zoom reset
   }, [selectedState]);
-
-  const handleViewportChange = (newBounds) => {
-    if (skipNextRef.current) {
-      skipNextRef.current = false;
-      return;
-    }
-    setBounds(newBounds);
-  };
 
   return (
     <div>
@@ -79,13 +92,12 @@ const MapWithList = () => {
         <div className="w-1/2 h-full">
           <Map
             points={points}
-            bounds={bounds}
-            onViewportChange={handleViewportChange}
-            skipNextRef={skipNextRef}
+            forceBounds={controlledBounds} // Only used when *forcing* a bounds change
+            onLiveBoundsChange={setLiveBounds} // Always updated when user moves/zooms map
           />
         </div>
         <div className="w-1/2 h-full overflow-y-auto">
-          <ProfileList points={points} />
+          <ProfileList points={livePoints} />
         </div>
       </div>
     </div>
