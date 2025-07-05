@@ -22,7 +22,7 @@
     "react-dom": "^19.1.0",
     "react-leaflet": "^5.0.0",
     "react-map-gl": "^7.1.9",
-    "react-router-dom": "^7.6.3",
+    "react-router-dom": "^6.30.1",
     "remove": "^0.1.5",
     "stream-browserify": "^3.0.0"
   },

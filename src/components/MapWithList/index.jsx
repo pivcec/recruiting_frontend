@@ -97,7 +97,7 @@ const MapWithList = () => {
           />
         </div>
         <div className="w-1/2 h-full overflow-y-auto">
-          <ProfileList points={livePoints} />
+          <ProfileList points={livePoints} selectedState={selectedState} />
         </div>
       </div>
     </div>
