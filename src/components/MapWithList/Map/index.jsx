@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, useMap, useMapEvent } from "react-leaflet";
+import CircularProgress from "@mui/material/CircularProgress";
 import L from "leaflet";
 import "leaflet.markercluster";
 
@@ -88,10 +89,8 @@ const MapBoundsSetter = ({ forceBounds }) => {
 
     if (changed) {
       if (forceBounds.isAlaska) {
-        // For Alaska, set fixed center and zoom
         map.setView(ALASKA_CENTER, ALASKA_ZOOM);
       } else {
-        // For other states, fit bounds normally
         const leafletBounds = L.latLngBounds(
           [forceBounds.sw.lat, forceBounds.sw.lng],
           [forceBounds.ne.lat, forceBounds.ne.lng]
@@ -106,21 +105,49 @@ const MapBoundsSetter = ({ forceBounds }) => {
 };
 
 // === Main Exported Map ===
-export default function Map({ points, forceBounds, onLiveBoundsChange }) {
+export default function Map({
+  points,
+  forceBounds,
+  onLiveBoundsChange,
+  loading,
+}) {
+  if (loading) {
+    return (
+      <div className="relative w-full h-full">
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <CircularProgress size={48} color="primary" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <MapContainer
-      center={[38.03598414183243, -95.14190792741904]}
-      zoom={4}
-      style={{ height: "100%", width: "100%" }}
-      scrollWheelZoom={true}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution="&copy; OpenStreetMap contributors"
-      />
-      <MarkerClusterGroup points={points} />
-      <MapBoundsObserver onLiveBoundsChange={onLiveBoundsChange} />
-      <MapBoundsSetter forceBounds={forceBounds} />
-    </MapContainer>
+    <div className="relative w-full h-full">
+      <MapContainer
+        center={[38.03598414183243, -95.14190792741904]}
+        zoom={4}
+        style={{ height: "100%", width: "100%" }}
+        scrollWheelZoom={true}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution="&copy; OpenStreetMap contributors"
+        />
+        <MarkerClusterGroup points={points} />
+        <MapBoundsObserver onLiveBoundsChange={onLiveBoundsChange} />
+        <MapBoundsSetter forceBounds={forceBounds} />
+      </MapContainer>
+    </div>
   );
 }

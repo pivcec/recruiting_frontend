@@ -14,6 +14,7 @@ const MapWithList = () => {
 
   const [selectedStateType, setSelectedStateType] = useState("");
   const [selectedEmploymentState, setSelectedEmploymentState] = useState("");
+  const [loadingPoints, setLoadingPoints] = useState(false);
   const [points, setPoints] = useState([]);
   const skipNextRef = useRef(false);
 
@@ -33,6 +34,8 @@ const MapWithList = () => {
     if (!selectedEmploymentState || !selectedStateType) return;
 
     const fetchPointsByState = async () => {
+      setLoadingPoints(true);
+
       const params = new URLSearchParams();
       params.append(
         selectedStateType === "employment"
@@ -56,6 +59,8 @@ const MapWithList = () => {
         setPoints(uniqueProfiles);
       } catch (err) {
         console.error("Error fetching state map data:", err);
+      } finally {
+        setLoadingPoints(false);
       }
     };
 
@@ -129,10 +134,15 @@ const MapWithList = () => {
             points={points}
             forceBounds={controlledBounds}
             onLiveBoundsChange={setLiveBounds}
+            loading={loadingPoints}
           />
         </div>
         <div className="w-1/2 h-full overflow-y-auto">
-          <ProfileList points={livePoints} />
+          {loadingPoints ? (
+            <div>Loading...</div>
+          ) : (
+            <ProfileList points={livePoints} />
+          )}
         </div>
       </div>
     </div>
