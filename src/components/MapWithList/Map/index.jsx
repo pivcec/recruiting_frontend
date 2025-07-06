@@ -3,6 +3,10 @@ import { MapContainer, TileLayer, useMap, useMapEvent } from "react-leaflet";
 import L from "leaflet";
 import "leaflet.markercluster";
 
+// Constants for Alaska
+const ALASKA_CENTER = [64.2008, -149.4937];
+const ALASKA_ZOOM = 4;
+
 // === Marker Cluster Layer ===
 const MarkerClusterGroup = ({ points }) => {
   const map = useMap();
@@ -58,7 +62,6 @@ const MapBoundsObserver = ({ onLiveBoundsChange }) => {
 
     if (changed) {
       lastBoundsRef.current = current;
-      console.log("🔍 Live bounds updated:", current);
       onLiveBoundsChange?.(current);
     }
   });
@@ -80,14 +83,21 @@ const MapBoundsSetter = ({ forceBounds }) => {
       prev.sw.lat !== forceBounds.sw.lat ||
       prev.sw.lng !== forceBounds.sw.lng ||
       prev.ne.lat !== forceBounds.ne.lat ||
-      prev.ne.lng !== forceBounds.ne.lng;
+      prev.ne.lng !== forceBounds.ne.lng ||
+      prev.isAlaska !== forceBounds.isAlaska;
 
     if (changed) {
-      const leafletBounds = L.latLngBounds(
-        [forceBounds.sw.lat, forceBounds.sw.lng],
-        [forceBounds.ne.lat, forceBounds.ne.lng]
-      );
-      map.fitBounds(leafletBounds, { padding: [20, 20] });
+      if (forceBounds.isAlaska) {
+        // For Alaska, set fixed center and zoom
+        map.setView(ALASKA_CENTER, ALASKA_ZOOM);
+      } else {
+        // For other states, fit bounds normally
+        const leafletBounds = L.latLngBounds(
+          [forceBounds.sw.lat, forceBounds.sw.lng],
+          [forceBounds.ne.lat, forceBounds.ne.lng]
+        );
+        map.fitBounds(leafletBounds, { padding: [20, 20] });
+      }
       prevBoundsRef.current = forceBounds;
     }
   }, [forceBounds, map]);

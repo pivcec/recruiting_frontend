@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Pagination from "./Pagination";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -22,7 +23,7 @@ const formatName = (profile) => {
   }
 };
 
-const List = ({ points, selectedState }) => {
+const List = ({ points }) => {
   const [page, setPage] = useState(1);
   const [profiles, setProfiles] = useState([]);
   const totalPages = Math.ceil(points.length / ITEMS_PER_PAGE);
@@ -92,56 +93,58 @@ const List = ({ points, selectedState }) => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-2">Profiles (Page {page})</h2>
-      <ul className="mb-4">
-        {profiles.length > 0 ? (
-          profiles.map((profile) => {
-            const name = formatName(profile);
-            return (
-              <li
-                key={profile._id}
-                className="border-b py-2 cursor-pointer hover:bg-gray-100"
-                onClick={() => openProfilePage(profile._id)}
-                title={`Open details for ${name}`}
-              >
-                {name}
-                {/*
-                <button
-                  className="ml-4 px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                  onClick={() => openLinkedInSearch(name, selectedState)}
-                  title={`Search LinkedIn for ${name} in ${selectedState}`}
+    <div>
+      <div>
+        <ul
+          style={{
+            marginLeft: 10,
+            marginTop: 0,
+            marginBottom: 0,
+            paddingLeft: 0,
+          }}
+          className="list-none overflow-y-auto border rounded border-gray-300"
+        >
+          {profiles.length > 0 ? (
+            profiles.map((profile) => {
+              const name = formatName(profile);
+              return (
+                <li
+                  key={profile._id}
+                  style={{ paddingLeft: "10px" }}
+                  className="h-[20px] box-border border-b border-gray-300 pr-2 cursor-pointer hover:bg-gray-100 last:border-b-0"
+                  onClick={() => openProfilePage(profile._id)}
+                  title={`Open details for ${name}`}
                 >
-                  LinkedIn Search
-                </button>
-                */}
-              </li>
-            );
-          })
-        ) : (
-          <li>No profiles found.</li>
-        )}
-      </ul>
-
-      <div className="flex justify-between">
-        <button
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          onClick={handlePrev}
-          disabled={page === 1}
-        >
-          Previous
-        </button>
-        <span className="px-4">
-          Page {page} of {totalPages}
-        </span>
-        <button
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          onClick={handleNext}
-          disabled={page === totalPages}
-        >
-          Next
-        </button>
+                  {name}
+                </li>
+              );
+            })
+          ) : (
+            <li>No profiles found.</li>
+          )}
+        </ul>
       </div>
+
+      {/*
+      <button
+        className="ml-4 px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+        onClick={() => openLinkedInSearch(name, selectedState)}
+        title={`Search LinkedIn for ${name} in ${selectedState}`}
+      >
+        LinkedIn Search
+      </button>
+      */}
+
+      <h2 className="text-xl font-bold mb-2 text-center w-full">
+        Results: {points.length}
+      </h2>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        handlePrev={handlePrev}
+        handleNext={handleNext}
+      />
     </div>
   );
 };

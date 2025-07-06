@@ -8,15 +8,17 @@ const MapWithList = () => {
   const [controlledBounds, setControlledBounds] = useState({
     sw: { lat: 24.396308, lng: -125.0 },
     ne: { lat: 49.384358, lng: -66.93457 },
+    isAlaska: false,
   });
   const [liveBounds, setLiveBounds] = useState(null);
-  const [selectedState, setSelectedState] = useState(null);
+
+  const [selectedStateType, setSelectedStateType] = useState("");
+  const [selectedEmploymentState, setSelectedEmploymentState] = useState("");
   const [points, setPoints] = useState([]);
-  const skipNextRef = useRef(false); // 🧭 used to avoid zoom loop
+  const skipNextRef = useRef(false);
 
   const livePoints = useMemo(() => {
     if (!liveBounds) return [];
-
     return points.filter(({ lat, lng }) => {
       return (
         lat >= liveBounds.sw.lat &&
@@ -27,23 +29,23 @@ const MapWithList = () => {
     });
   }, [points, liveBounds]);
 
-  // Just to monitor what's happening
   useEffect(() => {
-    if (liveBounds) {
-      console.log("📦 Live Bounds in parent:", liveBounds);
-    }
-  }, [liveBounds]);
+    if (!selectedEmploymentState || !selectedStateType) return;
 
-  useEffect(() => {
     const fetchPointsByState = async () => {
-      if (!selectedState) return;
+      const params = new URLSearchParams();
+      params.append(
+        selectedStateType === "employment"
+          ? "employmentState"
+          : "iaEmploymentState",
+        selectedEmploymentState
+      );
 
       try {
         const res = await fetch(
-          `http://localhost:8000/api/map/${selectedState}`
+          `http://localhost:8000/api/map?${params.toString()}`
         );
         if (!res.ok) throw new Error("Failed to fetch");
-
         const data = await res.json();
         setPoints(data);
       } catch (err) {
@@ -52,13 +54,14 @@ const MapWithList = () => {
     };
 
     fetchPointsByState();
-  }, [selectedState]);
+  }, [selectedEmploymentState, selectedStateType]);
 
-  // 🧭 Update bounds when state changes
   useEffect(() => {
-    if (!selectedState || !statePolygons[selectedState]) return;
+    if (!selectedEmploymentState) return;
 
-    const polygons = statePolygons[selectedState];
+    const polygons = statePolygons[selectedEmploymentState];
+    if (!polygons) return;
+
     let minLat = Infinity,
       minLng = Infinity,
       maxLat = -Infinity,
@@ -73,31 +76,57 @@ const MapWithList = () => {
       });
     });
 
+    // Special handling for Alaska to prevent zooming out too far
+    const isAlaska = selectedEmploymentState === "AK";
+
+    // Optionally, if Alaska polygons are sparse and cause weird bounds,
+    // you can expand or restrict bounds here.
+    // Example: clamp min/max lat/lng or add padding for Alaska specifically.
+
     const newControlledBounds = {
       sw: { lat: minLat, lng: minLng },
       ne: { lat: maxLat, lng: maxLng },
+      isAlaska,
     };
 
     setControlledBounds(newControlledBounds);
-    skipNextRef.current = true; // prevent triggering zoom reset
-  }, [selectedState]);
+    skipNextRef.current = true;
+  }, [selectedEmploymentState]);
+
+  const handleStateChange = (stateType) => (stateCode) => {
+    setSelectedStateType(stateType);
+    setSelectedEmploymentState(stateCode);
+  };
 
   return (
     <div>
-      <StateDropdown
-        selectedState={selectedState}
-        updateSelectedState={setSelectedState}
-      />
+      <div className="flex gap-4 mb-4">
+        <StateDropdown
+          label="Employment State"
+          selectedState={
+            selectedStateType === "employment" ? selectedEmploymentState : ""
+          }
+          updateSelectedState={handleStateChange("employment")}
+        />
+        <StateDropdown
+          label="IA Employment State"
+          selectedState={
+            selectedStateType === "iaEmployment" ? selectedEmploymentState : ""
+          }
+          updateSelectedState={handleStateChange("iaEmployment")}
+        />
+      </div>
+
       <div className="flex h-screen">
-        <div className="w-1/2 h-full">
+        <div className="w-1/2 h-[65vh]">
           <Map
             points={points}
-            forceBounds={controlledBounds} // Only used when *forcing* a bounds change
-            onLiveBoundsChange={setLiveBounds} // Always updated when user moves/zooms map
+            forceBounds={controlledBounds}
+            onLiveBoundsChange={setLiveBounds}
           />
         </div>
         <div className="w-1/2 h-full overflow-y-auto">
-          <ProfileList points={livePoints} selectedState={selectedState} />
+          <ProfileList points={livePoints} />
         </div>
       </div>
     </div>

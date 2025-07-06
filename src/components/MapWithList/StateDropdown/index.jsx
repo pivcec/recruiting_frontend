@@ -53,15 +53,23 @@ const states = {
   "District of Columbia": "DC",
 };
 
-export default function StateDropdown({ selectedState, updateSelectedState }) {
+export default function StateDropdown({
+  label,
+  selectedState,
+  updateSelectedState,
+}) {
   const handleChange = (e) => {
     updateSelectedState(e.target.value);
   };
 
   return (
-    <div>
-      <label htmlFor="state-select">Select a state: </label>
-      <select id="state-select" value={selectedState} onChange={handleChange}>
+    <div className="mb-2">
+      <label htmlFor={`state-select-${label}`}>{label}: </label>
+      <select
+        id={`state-select-${label}`}
+        value={selectedState}
+        onChange={handleChange}
+      >
         <option value="">-- Choose a state --</option>
         {Object.entries(states).map(([name, code]) => (
           <option key={code} value={code}>
