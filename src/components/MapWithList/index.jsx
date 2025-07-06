@@ -47,7 +47,13 @@ const MapWithList = () => {
         );
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
-        setPoints(data);
+
+        const uniqueProfiles = data.filter(
+          (value, index, self) =>
+            self.findIndex((v) => v.id === value.id) === index
+        );
+
+        setPoints(uniqueProfiles);
       } catch (err) {
         console.error("Error fetching state map data:", err);
       }
