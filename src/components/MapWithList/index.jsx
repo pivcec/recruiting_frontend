@@ -4,6 +4,11 @@ import ProfileList from "./List";
 import StateDropdown from "./StateDropdown";
 import statePolygons from "../../data/state_polygons_lowres_dict.json";
 
+const employmentOptions = [
+  { label: "Current Employment", value: "employmentState" },
+  { label: "Current IA Employment", value: "iaEmploymentState" },
+];
+
 const MapWithList = () => {
   const [controlledBounds, setControlledBounds] = useState({
     sw: { lat: 24.396308, lng: -125.0 },
@@ -12,10 +17,14 @@ const MapWithList = () => {
   });
   const [liveBounds, setLiveBounds] = useState(null);
 
-  const [selectedStateType, setSelectedStateType] = useState("");
-  const [selectedEmploymentState, setSelectedEmploymentState] = useState("");
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [points, setPoints] = useState([]);
+
+  const [selectedEmploymentFilter, setSelectedEmploymentFilter] = useState({
+    type: "",
+    state: "",
+  });
+
   const skipNextRef = useRef(false);
 
   const livePoints = useMemo(() => {
@@ -31,18 +40,13 @@ const MapWithList = () => {
   }, [points, liveBounds]);
 
   useEffect(() => {
-    if (!selectedEmploymentState || !selectedStateType) return;
+    const { type, state } = selectedEmploymentFilter;
+    if (!type || !state) return;
 
     const fetchPointsByState = async () => {
       setLoadingPoints(true);
-
       const params = new URLSearchParams();
-      params.append(
-        selectedStateType === "employment"
-          ? "employmentState"
-          : "iaEmploymentState",
-        selectedEmploymentState
-      );
+      params.append(type, state);
 
       try {
         const res = await fetch(
@@ -65,12 +69,13 @@ const MapWithList = () => {
     };
 
     fetchPointsByState();
-  }, [selectedEmploymentState, selectedStateType]);
+  }, [selectedEmploymentFilter]);
 
   useEffect(() => {
-    if (!selectedEmploymentState) return;
+    const { state } = selectedEmploymentFilter;
+    if (!state) return;
 
-    const polygons = statePolygons[selectedEmploymentState];
+    const polygons = statePolygons[state];
     if (!polygons) return;
 
     let minLat = Infinity,
@@ -87,45 +92,56 @@ const MapWithList = () => {
       });
     });
 
-    // Special handling for Alaska to prevent zooming out too far
-    const isAlaska = selectedEmploymentState === "AK";
+    const isAlaska = state === "AK";
 
-    // Optionally, if Alaska polygons are sparse and cause weird bounds,
-    // you can expand or restrict bounds here.
-    // Example: clamp min/max lat/lng or add padding for Alaska specifically.
-
-    const newControlledBounds = {
+    setControlledBounds({
       sw: { lat: minLat, lng: minLng },
       ne: { lat: maxLat, lng: maxLng },
       isAlaska,
-    };
-
-    setControlledBounds(newControlledBounds);
+    });
     skipNextRef.current = true;
-  }, [selectedEmploymentState]);
+  }, [selectedEmploymentFilter]);
 
-  const handleStateChange = (stateType) => (stateCode) => {
-    setSelectedStateType(stateType);
-    setSelectedEmploymentState(stateCode);
+  const handleTypeChange = (e) => {
+    const newType = e.target.value;
+    setSelectedEmploymentFilter((prev) => ({
+      type: newType,
+      state: "",
+    }));
+  };
+
+  const handleStateChange = (newState) => {
+    setSelectedEmploymentFilter((prev) => ({
+      ...prev,
+      state: newState,
+    }));
   };
 
   return (
     <div>
-      <div className="flex gap-4 mb-4">
-        <StateDropdown
-          label="Employment State"
-          selectedState={
-            selectedStateType === "employment" ? selectedEmploymentState : ""
-          }
-          updateSelectedState={handleStateChange("employment")}
-        />
-        <StateDropdown
-          label="IA Employment State"
-          selectedState={
-            selectedStateType === "iaEmployment" ? selectedEmploymentState : ""
-          }
-          updateSelectedState={handleStateChange("iaEmployment")}
-        />
+      <div className="flex gap-4 mb-4 flex-wrap">
+        <div>
+          <select
+            value={selectedEmploymentFilter.type}
+            onChange={handleTypeChange}
+            className="border p-2 rounded"
+          >
+            <option value="">Employment Type</option>
+            {employmentOptions.map(({ label, value }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <StateDropdown
+            label=""
+            selectedState={selectedEmploymentFilter.state}
+            updateSelectedState={handleStateChange}
+            disabled={!selectedEmploymentFilter.type}
+          />
+        </div>
       </div>
 
       <div className="flex h-screen">

@@ -6,7 +6,7 @@ import ProfilePage from "./pages/ProfilePage";
 function App() {
   return (
     <>
-      <Nav />
+      {/* <Nav /> */}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/profiles" element={<ProfilePage />} />
