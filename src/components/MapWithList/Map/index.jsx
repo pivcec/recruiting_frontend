@@ -3,10 +3,28 @@ import { MapContainer, TileLayer, useMap, useMapEvent } from "react-leaflet";
 import CircularProgress from "@mui/material/CircularProgress";
 import L from "leaflet";
 import "leaflet.markercluster";
+import styled from "styled-components";
 
-// Constants for Alaska
 const ALASKA_CENTER = [64.2008, -149.4937];
 const ALASKA_ZOOM = 4;
+const MAX_POINTS_THRESHOLD = 1000;
+
+// Styled Components
+const Wrapper = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+`;
+
+const LoadingOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(255 255 255 / 0.7);
+  z-index: 1000;
+`;
 
 // === Marker Cluster Layer ===
 const MarkerClusterGroup = ({ points }) => {
@@ -14,18 +32,32 @@ const MarkerClusterGroup = ({ points }) => {
   const markerClusterGroupRef = useRef(null);
 
   useEffect(() => {
-    if (!markerClusterGroupRef.current) {
-      markerClusterGroupRef.current = L.markerClusterGroup();
-      map.addLayer(markerClusterGroupRef.current);
+    // Clear previous cluster group
+    if (markerClusterGroupRef.current) {
+      map.removeLayer(markerClusterGroupRef.current);
+      markerClusterGroupRef.current = null;
     }
 
-    markerClusterGroupRef.current.clearLayers();
+    // Don't render if no points
+    if (!points.length) return;
 
+    // Create cluster group with default behavior
+    markerClusterGroupRef.current = L.markerClusterGroup({
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: true,
+      zoomToBoundsOnClick: true,
+    });
+
+    // Add markers to the cluster group
     points.forEach(({ id, lat, lng }) => {
       const marker = L.marker([lat, lng]);
       markerClusterGroupRef.current.addLayer(marker);
     });
 
+    // Add the cluster group to the map
+    map.addLayer(markerClusterGroupRef.current);
+
+    // Cleanup on unmount/update
     return () => {
       if (markerClusterGroupRef.current) {
         map.removeLayer(markerClusterGroupRef.current);
@@ -111,29 +143,13 @@ export default function Map({
   onLiveBoundsChange,
   loading,
 }) {
-  if (loading) {
-    return (
-      <div className="relative w-full h-full">
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <CircularProgress size={48} color="primary" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative w-full h-full">
+    <Wrapper>
+      {loading && (
+        <LoadingOverlay>
+          <CircularProgress size={48} color="primary" />
+        </LoadingOverlay>
+      )}
       <MapContainer
         center={[38.03598414183243, -95.14190792741904]}
         zoom={4}
@@ -148,6 +164,6 @@ export default function Map({
         <MapBoundsObserver onLiveBoundsChange={onLiveBoundsChange} />
         <MapBoundsSetter forceBounds={forceBounds} />
       </MapContainer>
-    </div>
+    </Wrapper>
   );
 }

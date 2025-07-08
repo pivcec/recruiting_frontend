@@ -1,4 +1,5 @@
-// components/StateDropdown.js
+import styled from "styled-components";
+
 const states = {
   Alabama: "AL",
   Alaska: "AK",
@@ -53,30 +54,52 @@ const states = {
   "District of Columbia": "DC",
 };
 
+const Container = styled.div`
+  margin-bottom: 0.5rem;
+`;
+
+const Label = styled.label`
+  margin-right: 0.5rem;
+  font-weight: 600;
+`;
+
+const Select = styled.select`
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: ${({ disabled }) => (disabled ? "#f0f0f0" : "white")};
+  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+  font-size: 1rem;
+  min-width: 160px;
+`;
+
 export default function StateDropdown({
   label,
   selectedState,
   updateSelectedState,
+  option = "Select State",
+  disabled = false,
 }) {
   const handleChange = (e) => {
     updateSelectedState(e.target.value);
   };
 
   return (
-    <div className="mb-2">
-      <label htmlFor={`state-select-${label}`}>{label}: </label>
-      <select
+    <Container>
+      <Label htmlFor={`state-select-${label}`}>{label}:</Label>
+      <Select
         id={`state-select-${label}`}
         value={selectedState}
         onChange={handleChange}
+        disabled={disabled}
       >
-        <option value="">-- Choose a state --</option>
+        <option value="">{option}</option>
         {Object.entries(states).map(([name, code]) => (
           <option key={code} value={code}>
             {name}
           </option>
         ))}
-      </select>
-    </div>
+      </Select>
+    </Container>
   );
 }

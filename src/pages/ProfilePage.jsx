@@ -1,6 +1,26 @@
 import { useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import styled from "styled-components";
 import ProfileTable from "../components/ProfileTable";
+
+// Styled Components
+const Container = styled.div`
+  max-width: 800px;
+  padding: 2rem;
+  font-family: sans-serif;
+`;
+
+const Heading = styled.h2`
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+`;
+
+const Message = styled.div`
+  font-size: 1rem;
+  margin-top: 2rem;
+  color: ${({ error }) => (error ? "#d9534f" : "#333")};
+`;
 
 const ProfilePage = () => {
   const location = useLocation();
@@ -43,18 +63,17 @@ const ProfilePage = () => {
     fetchProfile();
   }, [id]);
 
-  if (loading) return <div>Loading profile...</div>;
-  if (error) return <div>{error}</div>;
-  if (!profile) return <div>No profile found.</div>;
+  if (loading) return <Message>Loading profile...</Message>;
+  if (error) return <Message error>{error}</Message>;
+  if (!profile) return <Message>No profile found.</Message>;
 
   return (
-    <div>
-      <h2>Profile ID: {id}</h2>
-      {/* Render profile info here, e.g.: */}
+    <Container>
+      <Heading>Profile ID: {id}</Heading>
       <ProfileTable
         data={JSON.parse(profile.data.hits.hits[0]._source.content)}
       />
-    </div>
+    </Container>
   );
 };
 

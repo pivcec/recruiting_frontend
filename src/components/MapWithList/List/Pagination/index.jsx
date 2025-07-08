@@ -1,28 +1,54 @@
+import styled from "styled-components";
+
+const PaginationWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const PageInfo = styled.span`
+  padding: 0 1rem;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 1rem;
+`;
+
+const Button = styled.button`
+  padding: 0.25rem 0.75rem;
+  background-color: #e5e7eb; /* gray-200 */
+  border-radius: 0.375rem;
+  cursor: pointer;
+  border: none;
+  font-size: 1rem;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    background-color: #d1d5db; /* gray-300 */
+  }
+`;
+
 const Pagination = ({ page, totalPages, handleNext, handlePrev }) => {
   return (
-    <div className="flex flex-col items-center space-y-2">
-      <div>
-        <span className="px-4">
-          Page {page} of {totalPages}
-        </span>
-      </div>
-      <div className="flex gap-x-4">
-        <button
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          onClick={handlePrev}
-          disabled={page === 1}
-        >
+    <PaginationWrapper>
+      <PageInfo>
+        Page {page} of {totalPages}
+      </PageInfo>
+      <ButtonRow>
+        <Button onClick={handlePrev} disabled={page === 1}>
           Previous
-        </button>
-        <button
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          onClick={handleNext}
-          disabled={page === totalPages}
-        >
+        </Button>
+        <Button onClick={handleNext} disabled={page === totalPages}>
           Next
-        </button>
-      </div>
-    </div>
+        </Button>
+      </ButtonRow>
+    </PaginationWrapper>
   );
 };
 

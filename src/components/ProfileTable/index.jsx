@@ -1,8 +1,70 @@
 import React from "react";
+import styled from "styled-components";
 
+// Styled components for tables and other elements
+const Table = styled.table`
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1rem;
+  border: 1px solid #d1d5db; /* gray-300 */
+`;
+
+const Thead = styled.thead`
+  background-color: #f3f4f6; /* gray-100 */
+`;
+
+const Th = styled.th`
+  border: 1px solid #d1d5db; /* gray-300 */
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+`;
+
+const Td = styled.td`
+  border: 1px solid #d1d5db; /* gray-300 */
+  padding: 0.25rem 0.5rem;
+`;
+
+const Section = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-transform: capitalize;
+`;
+
+const List = styled.ul`
+  list-style-type: disc;
+  padding-left: 1.25rem; /* list-inside */
+  margin: 0;
+`;
+
+const ListItem = styled.li`
+  margin-left: 0.25rem;
+`;
+
+const Emphasis = styled.em`
+  font-style: italic;
+  color: #6b7280; /* gray-500 */
+`;
+
+const FontSemiboldTd = styled(Td)`
+  font-weight: 600;
+`;
+
+const SpaceY = styled.div`
+  > * + * {
+    margin-top: 1.5rem;
+  }
+`;
+
+// Recursive rendering function
 const renderValue = (value) => {
   if (Array.isArray(value)) {
-    if (value.length === 0) return <em>None</em>;
+    if (value.length === 0) return <Emphasis>None</Emphasis>;
 
     if (typeof value[0] === "object" && value[0] !== null) {
       // Array of objects → sub-table
@@ -11,55 +73,51 @@ const renderValue = (value) => {
       );
 
       return (
-        <table className="border border-gray-300 w-full mb-2">
-          <thead className="bg-gray-100">
+        <Table>
+          <Thead>
             <tr>
               {allKeys.map((key) => (
-                <th key={key} className="border px-2 py-1 text-left">
-                  {key}
-                </th>
+                <Th key={key}>{key}</Th>
               ))}
             </tr>
-          </thead>
+          </Thead>
           <tbody>
             {value.map((item, idx) => (
               <tr key={idx}>
                 {allKeys.map((key) => (
-                  <td key={key} className="border px-2 py-1">
-                    {renderValue(item?.[key])}
-                  </td>
+                  <Td key={key}>{renderValue(item?.[key])}</Td>
                 ))}
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       );
     } else {
       // Array of primitives
       return (
-        <ul className="list-disc list-inside">
+        <List>
           {value.map((v, idx) => (
-            <li key={idx}>{v}</li>
+            <ListItem key={idx}>{v}</ListItem>
           ))}
-        </ul>
+        </List>
       );
     }
   } else if (typeof value === "object" && value !== null) {
     // Nested object → recursive table
     return (
-      <table className="border border-gray-300 w-full mb-2">
+      <Table>
         <tbody>
           {Object.entries(value).map(([key, val]) => (
             <tr key={key}>
-              <td className="border px-2 py-1 font-semibold">{key}</td>
-              <td className="border px-2 py-1">{renderValue(val)}</td>
+              <FontSemiboldTd>{key}</FontSemiboldTd>
+              <Td>{renderValue(val)}</Td>
             </tr>
           ))}
         </tbody>
-      </table>
+      </Table>
     );
   } else {
-    return value || <em>N/A</em>;
+    return value || <Emphasis>N/A</Emphasis>;
   }
 };
 
@@ -69,16 +127,14 @@ const ProfileTable = ({ data }) => {
   }
 
   return (
-    <div className="space-y-6 p-4">
+    <SpaceY>
       {Object.entries(data).map(([sectionKey, sectionValue]) => (
-        <div key={sectionKey}>
-          <h3 className="text-lg font-bold mb-2 capitalize">
-            {sectionKey.replace(/([A-Z])/g, " $1")}
-          </h3>
+        <Section key={sectionKey}>
+          <SectionTitle>{sectionKey.replace(/([A-Z])/g, " $1")}</SectionTitle>
           <div>{renderValue(sectionValue)}</div>
-        </div>
+        </Section>
       ))}
-    </div>
+    </SpaceY>
   );
 };
 
