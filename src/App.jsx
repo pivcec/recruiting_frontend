@@ -3,6 +3,7 @@ import Nav from "./components/Nav";
 import Home from "./pages/Home";
 import MapSearch from "./pages/MapSearch";
 import ProfilePage from "./pages/ProfilePage";
+import SearchByCert from "./components/SearchByCert";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/map-search" element={<MapSearch />} />
         <Route path="/profiles" element={<ProfilePage />} />
+        <Route path="/search-by-cert" element={<SearchByCert />} />
       </Routes>
     </>
   );

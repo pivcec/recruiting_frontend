@@ -18,8 +18,11 @@ const NavLink = styled(Link)`
 
 const Header = () => (
   <Nav>
+    {/*
     <NavLink to="/">Home</NavLink>
     <NavLink to="/map-search">Map Search</NavLink>
+    */}
+    <NavLink to="/search-by-cert">Search By Cert</NavLink>
   </Nav>
 );
 
