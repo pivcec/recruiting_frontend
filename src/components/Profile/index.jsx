@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import styled from "styled-components";
-import ProfileTable from "../components/ProfileTable";
+import ProfileTable from "./ProfileTable";
 
 // Styled Components
 const Container = styled.div`

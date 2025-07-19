@@ -1,9 +1,11 @@
 import { Routes, Route } from "react-router-dom";
 import Nav from "./components/Nav";
-import Home from "./pages/Home";
-import MapSearch from "./pages/MapSearch";
-import ProfilePage from "./pages/ProfilePage";
-import SearchByCert from "./components/SearchByCert";
+import Profile from "./components/Profile";
+import ManageDomains from "./components/ManageDomains";
+
+const Home = () => {
+  return <div>home</div>;
+};
 
 function App() {
   return (
@@ -11,9 +13,8 @@ function App() {
       <Nav />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/map-search" element={<MapSearch />} />
-        <Route path="/profiles" element={<ProfilePage />} />
-        <Route path="/search-by-cert" element={<SearchByCert />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/manage-domains" element={<ManageDomains />} />
       </Routes>
     </>
   );
