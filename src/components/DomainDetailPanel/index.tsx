@@ -1,4 +1,3 @@
-// components/DomainProfiles.tsx
 import React, { useEffect, useState } from "react";
 import VerifyEmailButton from "./VerifyEmailButton";
 import GenerateGuessesButton from "./GenerateGuesses";
@@ -6,28 +5,97 @@ import styled from "styled-components";
 import axios from "axios";
 
 const Wrapper = styled.div`
-  padding: 2rem;
+  padding: 0 2rem;
 `;
 
-const Title = styled.h2`
-  margin-bottom: 1rem;
+const Pagination = styled.div`
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
 `;
 
-const Table = styled.table`
-  border-collapse: collapse;
-  width: 100%;
+const Button = styled.button`
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
 `;
 
-const Th = styled.th`
-  border: 1px solid #ccc;
-  padding: 8px;
-  background-color: #f9f9f9;
-  text-align: left;
+const Row = styled.div`
+  display: grid;
+  grid-template-columns: 2fr 3fr 3fr;
+  border-bottom: 1px solid #eee;
+  padding: 0.5rem 0;
+  align-items: center;
 `;
 
-const Td = styled.td<{ isBorderless?: boolean }>`
-  border: ${(props) => (props.isBorderless ? "none" : "1px solid #eee")};
-  padding: 8px;
+const HeaderRow = styled(Row)`
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 100;
+  font-weight: bold;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #ccc;
+`;
+
+const Select = styled.select`
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  max-width: 140px;
+`;
+
+// Add this styled div for the combined sticky container
+const StickyContainer = styled.div`
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 100;
+  border-bottom: 2px solid #ccc;
+`;
+
+// Title styling can be simpler since now it's inside StickyContainer
+const Title = styled.div`
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+`;
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+`;
+
+export const PrimaryButton = styled.button`
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
 `;
 
 const patternMap: Record<number, string> = {
@@ -85,42 +153,58 @@ const toTitleCase = (str: string) =>
     .join(" ");
 
 interface DomainProfilesProps {
+  domainName: string | null;
   domainId: number;
   examIds: number[];
 }
 
 const DomainProfiles: React.FC<DomainProfilesProps> = ({
+  domainName,
   domainId,
   examIds,
 }) => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedPattern, setSelectedPattern] = useState<number>(1);
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
-  const firstPatternId = Number(Object.keys(patternMap)[0]);
-  const [selectedPattern, setSelectedPattern] =
-    useState<number>(firstPatternId);
+  const [offset, setOffset] = useState(0);
+  const [limit] = useState(100);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchProfiles = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post("/api/profiles-by-exams-domains", {
+        domain_ids: [domainId],
+        exam_ids: examIds,
+        limit,
+        offset,
+        pattern_id: selectedPattern,
+        status: selectedStatus === "all" ? null : selectedStatus,
+      });
+      setProfiles(response.data.results || []);
+      setTotalCount(response.data.count || 0);
+    } catch (err) {
+      setError("Failed to load profiles.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProfiles = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.post("/api/profiles-by-exams-domains", {
-          domain_ids: [domainId],
-          exam_ids: examIds,
-        });
-        setProfiles(response.data.results || []);
-      } catch (err) {
-        setError("Failed to load profiles.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (domainId && examIds.length) {
       fetchProfiles();
     }
-  }, [domainId, examIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domainId, examIds, offset]);
+
+  useEffect(() => {
+    if (domainId && examIds.length) {
+      fetchProfiles();
+    }
+  }, [domainId, examIds, offset, selectedPattern, selectedStatus]);
 
   const handleVerified = (
     profileId: number,
@@ -141,90 +225,128 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
     );
   };
 
+  const handleGenerateComplete = () => {
+    fetchProfiles();
+  };
+
+  const handlePrev = () => {
+    setOffset((prev) => Math.max(0, prev - limit));
+  };
+
+  const handleNext = () => {
+    setOffset((prev) => prev + limit);
+  };
+
   if (loading) return <Wrapper>Loading...</Wrapper>;
   if (error) return <Wrapper>{error}</Wrapper>;
 
   return (
     <Wrapper>
-      <Title>Guessed Emails Per Domain</Title>
-
-      <label style={{ marginBottom: "1rem", display: "inline-block" }}>
-        Filter by pattern:{" "}
-        <select
-          value={selectedPattern}
-          onChange={(e) => setSelectedPattern(parseInt(e.target.value))}
-        >
-          {Object.entries(patternMap).map(([id, name]) => (
-            <option key={id} value={id}>
-              {name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <StickyContainer>
+        <TitleRow>
+          <Title>{`Guessed Emails @ ${domainName}`}</Title>
+          <PrimaryButton onClick={() => alert("Check all clicked!")}>
+            Check all!
+          </PrimaryButton>
+        </TitleRow>
+        <HeaderRow>
+          <div style={{ marginBottom: 25 }}>Full Name</div>
+          <div>
+            <label style={{ display: "block" }}>Pattern</label>
+            <Select
+              value={selectedPattern}
+              onChange={(e) => setSelectedPattern(parseInt(e.target.value))}
+            >
+              {Object.entries(patternMap).map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <label style={{ display: "block" }}>Status</label>
+            <Select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option value="all">All</option>
+              {Object.entries(statusInfo).map(([key, { label }]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </HeaderRow>
+      </StickyContainer>
 
       {profiles.length === 0 ? (
-        <p>No profiles found.</p>
+        <Row>
+          <div>No profiles found.</div>
+        </Row>
       ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Full Name</Th>
-              <Th>Email</Th>
-              <Th>Status</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {profiles.map((p) => {
-              const filtered = (p.email_guesses || []).filter(
-                (eg) => eg.pattern_id === selectedPattern
-              );
+        profiles.map((p) => {
+          const guesses = p.email_guesses || [];
+          if (guesses.length === 0) {
+            return (
+              <Row key={p.id}>
+                <div>{toTitleCase(p.full_name)}</div>
+                <div colSpan={2}>
+                  <GenerateGuessesButton
+                    profileId={p.id}
+                    onComplete={handleGenerateComplete}
+                  />
+                </div>
+              </Row>
+            );
+          }
 
-              if (filtered.length === 0) {
-                return (
-                  <tr key={p.id}>
-                    <Td>{toTitleCase(p.full_name)}</Td>
-                    <Td colSpan={2}>
-                      <GenerateGuessesButton
-                        profileId={p.id}
-                        onComplete={() => window.location.reload()}
-                      />
-                    </Td>
-                  </tr>
-                );
-              }
-
-              return filtered.map((eg, index) => (
-                <tr key={`${p.id}-${index}`}>
-                  {index === 0 && (
-                    <Td rowSpan={filtered.length}>
-                      {toTitleCase(p.full_name)}
-                    </Td>
-                  )}
-                  <Td>{eg.email}</Td>
-                  <Td
-                    style={{
-                      backgroundColor: statusInfo[eg.status || ""]?.color,
-                      color: "#fff",
-                    }}
-                  >
-                    {eg.status ? (
-                      statusInfo[eg.status]?.label || eg.status
-                    ) : (
-                      <VerifyEmailButton
-                        emailGuessId={eg.id}
-                        email={eg.email}
-                        onVerified={(res) =>
-                          handleVerified(p.id, res.email_guess_id, res.status)
-                        }
-                      />
-                    )}
-                  </Td>
-                </tr>
-              ));
-            })}
-          </tbody>
-        </Table>
+          return guesses.map((eg, index) => (
+            <Row key={`${p.id}-${index}`}>
+              {index === 0 ? (
+                <div rowSpan={guesses.length}>{toTitleCase(p.full_name)}</div>
+              ) : (
+                <div />
+              )}
+              <div>{eg.email}</div>
+              <div
+                style={{
+                  backgroundColor: statusInfo[eg.status || ""]?.color,
+                  color: "#fff",
+                  padding: "4px 6px",
+                  borderRadius: "4px",
+                }}
+              >
+                {eg.status ? (
+                  statusInfo[eg.status]?.label || eg.status
+                ) : (
+                  <VerifyEmailButton
+                    emailGuessId={eg.id}
+                    email={eg.email}
+                    onVerified={(res) =>
+                      handleVerified(p.id, res.email_guess_id, res.status)
+                    }
+                  />
+                )}
+              </div>
+            </Row>
+          ));
+        })
       )}
+
+      <Pagination>
+        <Button onClick={handlePrev} disabled={offset === 0}>
+          ◀ Prev
+        </Button>
+        <span>
+          Showing {offset + 1}–{Math.min(offset + limit, totalCount)} of{" "}
+          {totalCount}
+        </span>
+        <Button onClick={handleNext} disabled={offset + limit >= totalCount}>
+          Next ▶
+        </Button>
+      </Pagination>
     </Wrapper>
   );
 };

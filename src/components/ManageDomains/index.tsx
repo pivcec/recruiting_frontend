@@ -102,6 +102,9 @@ const ManageDomains: React.FC = () => {
   const [expandedDomainId, setExpandedDomainId] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedDomainId, setSelectedDomainId] = useState<number | null>(null);
+  const [selectedDomainName, setSelectedDomainName] = useState<string | null>(
+    null
+  );
   const [topPanelHeight, setTopPanelHeight] = useState<number>(400);
   const [isResizing, setIsResizing] = useState(false);
   const [hasUserResized, setHasUserResized] = useState(false);
@@ -222,6 +225,11 @@ const ManageDomains: React.FC = () => {
     }
   };
 
+  const handleSelectDomain = (name, id) => {
+    setSelectedDomainName(name);
+    setSelectedDomainId(id);
+  };
+
   return (
     <>
       <Container style={{ userSelect: isResizing ? "none" : "auto" }}>
@@ -253,7 +261,7 @@ const ManageDomains: React.FC = () => {
               profilesByDomain={profilesByDomain}
               getSelectedExamIds={getSelectedExamIds}
               expandedDomainId={expandedDomainId}
-              onSelectDomain={setSelectedDomainId}
+              handleSelectDomain={handleSelectDomain}
             />
           </TopPanel>
 
@@ -263,6 +271,7 @@ const ManageDomains: React.FC = () => {
 
               <BottomPanel>
                 <DomainDetailPanel
+                  domainName={selectedDomainName}
                   domainId={selectedDomainId}
                   examIds={getSelectedExamIds()}
                 />

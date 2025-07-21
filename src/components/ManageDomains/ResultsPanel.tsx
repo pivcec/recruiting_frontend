@@ -47,7 +47,7 @@ type ResultsPanelProps = {
   profilesByDomain: ProfilesByDomain;
   getSelectedExamIds: () => number[];
   expandedDomainId: number | null;
-  onSelectDomain: (domainId: number) => void;
+  handleSelectDomain: (domainName: string, domainId: number) => void;
 };
 
 const ResultsPanel: React.FC<ResultsPanelProps> = ({
@@ -56,10 +56,10 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
   toggleFirmDomains,
   firmDomains,
   domainLoadingIds,
-  onSelectDomain,
+  handleSelectDomain,
 }) => {
-  const handleOpenDomainProfiles = (domainId: number) => {
-    onSelectDomain(domainId); // sets domainId in parent
+  const handleOpenDomainProfiles = (domainName: string, domainId: number) => {
+    handleSelectDomain(domainName, domainId);
   };
 
   return (
@@ -91,7 +91,9 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
                     domains.map((d) => (
                       <div key={d.id}>
                         <DomainName
-                          onClick={() => handleOpenDomainProfiles(d.id)}
+                          onClick={() =>
+                            handleOpenDomainProfiles(d.domain, d.id)
+                          }
                         >
                           {d.domain}
                         </DomainName>

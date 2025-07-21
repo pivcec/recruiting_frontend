@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 
+import { PrimaryButton } from "./index";
+
 const VerifyEmailButton = ({ emailGuessId, email, onVerified }) => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
@@ -29,18 +31,9 @@ const VerifyEmailButton = ({ emailGuessId, email, onVerified }) => {
   };
 
   return (
-    <button
-      onClick={handleVerify}
-      disabled={loading}
-      style={{
-        marginLeft: "0.5rem",
-        fontSize: "0.75rem",
-        padding: "2px 6px",
-        cursor: "pointer",
-      }}
-    >
+    <PrimaryButton onClick={handleVerify} disabled={loading}>
       {loading ? "checking..." : status ? status : "check status"}
-    </button>
+    </PrimaryButton>
   );
 };
 
