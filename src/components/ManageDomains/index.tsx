@@ -1,11 +1,11 @@
 // components/ManageDomains/index.tsx
-import React, { useState, ChangeEvent } from "react";
-import { Container } from "./styles";
+import React, { useState, ChangeEvent, useEffect } from "react";
+import styled from "styled-components";
 import ExamFilterPanel from "./ExamFilterPanel";
+import DomainDetailPanel from "../DomainDetailPanel";
 import ResultsPanel from "./ResultsPanel";
 
 import type {
-  Exam,
   SelectedExam,
   ResultItem,
   FirmWithDomains,
@@ -14,8 +14,78 @@ import type {
 
 import { exams } from "../../consts.ts";
 
+const Container = styled.div`
+  display: flex;
+  height: 100vh;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+`;
+
+const ToggleButton = styled.button`
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  padding: 8px 12px;
+  font-size: 14px;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+`;
+
+const MainColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+`;
+
+const TopPanel = styled.div<{ height: number }>`
+  height: ${({ height }) => height}px;
+  overflow: auto;
+`;
+
+const ResizeHandle = styled.div`
+  height: 6px;
+  background: #ccc;
+  cursor: row-resize;
+  z-index: 10;
+`;
+
+const BottomPanel = styled.div`
+  flex: 1;
+  overflow: auto;
+`;
+
+const Sidebar = styled.div<{ isOpen: boolean }>`
+  width: ${({ isOpen }) =>
+    isOpen ? "300px" : "40px"}; // adjust 300px or 40px as needed
+  transition: width 0.3s ease;
+  background: #f5f5f5;
+  border-right: 1px solid #ccc;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ChevronIcon = ({ direction }: { direction: "left" | "right" }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {direction === "left" ? (
+      <polyline points="15 18 9 12 15 6" />
+    ) : (
+      <polyline points="9 18 15 12 9 6" />
+    )}
+  </svg>
+);
+
 const ManageDomains: React.FC = () => {
-  // --- State ---
   const [selectedExams, setSelectedExams] = useState<
     Record<string, SelectedExam>
   >({});
@@ -31,8 +101,44 @@ const ManageDomains: React.FC = () => {
   );
   const [expandedDomainId, setExpandedDomainId] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [selectedDomainId, setSelectedDomainId] = useState<number | null>(null);
+  const [topPanelHeight, setTopPanelHeight] = useState<number>(400);
+  const [isResizing, setIsResizing] = useState(false);
+  const [hasUserResized, setHasUserResized] = useState(false);
 
-  // --- Handlers ---
+  useEffect(() => {
+    if (loading) return;
+
+    if (selectedDomainId) {
+      if (!hasUserResized) {
+        setTopPanelHeight(400);
+      }
+    } else {
+      setTopPanelHeight(window.innerHeight);
+      setHasUserResized(false);
+    }
+  }, [loading, selectedDomainId, hasUserResized]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      setTopPanelHeight(e.clientY);
+      setHasUserResized(true);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
+
   const handleCheckboxChange = (examCode: string, scope: string) => {
     const key = `${scope}:${examCode}`;
     setSelectedExams((prev) => {
@@ -64,7 +170,6 @@ const ManageDomains: React.FC = () => {
       .filter((id): id is number => id !== null);
   };
 
-  // You can move these async fetch handlers to api.ts later
   const handleSearch = async () => {
     setLoading(true);
     const exam_ids = getSelectedExamIds();
@@ -117,69 +222,54 @@ const ManageDomains: React.FC = () => {
     }
   };
 
-  const handleDomainClick = async (
-    exam_ids: number[],
-    domain_ids: number[]
-  ) => {
-    const domainId = domain_ids[0];
-
-    // Toggle open/close behavior
-    if (expandedDomainId === domainId) {
-      setExpandedDomainId(null); // close submenu if already open
-      return;
-    } else {
-      setExpandedDomainId(domainId); // open the clicked domain submenu
-    }
-
-    try {
-      const res = await fetch(
-        "http://localhost:8000/api/profiles-by-exams-domains",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ exam_ids, domain_ids }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to fetch profiles");
-
-      const data = await res.json();
-      setProfilesByDomain((prev) => ({
-        ...prev,
-        [domainId]: data.results || [],
-      }));
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   return (
     <>
-      <button onClick={() => setIsSidebarOpen((open) => !open)}>
-        {isSidebarOpen ? "Close Filters" : "Open Filters"}
-      </button>
-      <Container>
-        {isSidebarOpen && (
-          <ExamFilterPanel
-            selectedExams={selectedExams}
-            onCheckboxChange={handleCheckboxChange}
-            employmentType={employmentType}
-            onEmploymentTypeChange={handleEmploymentTypeChange}
-            onSearch={handleSearch}
-            loading={loading}
-          />
-        )}
-        <ResultsPanel
-          results={results}
-          expandedFirmId={expandedFirmId}
-          toggleFirmDomains={toggleFirmDomains}
-          firmDomains={firmDomains}
-          domainLoadingIds={domainLoadingIds}
-          profilesByDomain={profilesByDomain}
-          handleDomainClick={handleDomainClick}
-          getSelectedExamIds={getSelectedExamIds}
-          expandedDomainId={expandedDomainId}
-        />
+      <Container style={{ userSelect: isResizing ? "none" : "auto" }}>
+        <Sidebar isOpen={isSidebarOpen}>
+          <ToggleButton onClick={() => setIsSidebarOpen((open) => !open)}>
+            <ChevronIcon direction={isSidebarOpen ? "left" : "right"} />
+          </ToggleButton>
+
+          {isSidebarOpen && (
+            <ExamFilterPanel
+              selectedExams={selectedExams}
+              onCheckboxChange={handleCheckboxChange}
+              employmentType={employmentType}
+              onEmploymentTypeChange={handleEmploymentTypeChange}
+              onSearch={handleSearch}
+              loading={loading}
+              results={results}
+            />
+          )}
+        </Sidebar>
+        <MainColumn>
+          <TopPanel height={topPanelHeight}>
+            <ResultsPanel
+              results={results}
+              expandedFirmId={expandedFirmId}
+              toggleFirmDomains={toggleFirmDomains}
+              firmDomains={firmDomains}
+              domainLoadingIds={domainLoadingIds}
+              profilesByDomain={profilesByDomain}
+              getSelectedExamIds={getSelectedExamIds}
+              expandedDomainId={expandedDomainId}
+              onSelectDomain={setSelectedDomainId}
+            />
+          </TopPanel>
+
+          {selectedDomainId && (
+            <>
+              <ResizeHandle onMouseDown={() => setIsResizing(true)} />
+
+              <BottomPanel>
+                <DomainDetailPanel
+                  domainId={selectedDomainId}
+                  examIds={getSelectedExamIds()}
+                />
+              </BottomPanel>
+            </>
+          )}
+        </MainColumn>
       </Container>
     </>
   );

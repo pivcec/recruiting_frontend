@@ -3,14 +3,11 @@ import React from "react";
 import styled from "styled-components";
 import { exams } from "../../consts.ts";
 
-import type { Exam, SelectedExam } from "./types";
+import type { Exam, SelectedExam, ResultItem } from "./types";
 
 const Sidebar = styled.div`
-  width: 300px;
   padding: 1rem;
-  border-right: 1px solid #ccc;
   overflow-y: auto;
-  background-color: #f9f9f9;
 `;
 
 const GroupWrapper = styled.div`
@@ -52,6 +49,7 @@ type ExamFilterPanelProps = {
   onEmploymentTypeChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   onSearch: () => void;
   loading: boolean;
+  results: ResultItem[];
 };
 
 const renderCheckboxGroup = (
@@ -89,12 +87,17 @@ const ExamFilterPanel: React.FC<ExamFilterPanelProps> = ({
   onEmploymentTypeChange,
   onSearch,
   loading,
+  results,
 }) => {
   const stateExams = exams.filter((e) => e.category === "stateExamCategory");
   const productExams = exams.filter(
     (e) => e.category === "productExamCategory"
   );
-  // const principalExams = exams.filter((e) => e.category === "principalExamCategory");
+
+  const totalProfiles = results.reduce(
+    (acc, item) => acc + item.profile_count,
+    0
+  );
 
   return (
     <Sidebar>
@@ -132,6 +135,13 @@ const ExamFilterPanel: React.FC<ExamFilterPanelProps> = ({
       <Button onClick={onSearch} disabled={loading}>
         {loading ? "Searching..." : "Search"}
       </Button>
+
+      {results.length > 0 && (
+        <div style={{ marginTop: "30px", fontSize: "20px" }}>
+          <div>{`Firms: ${results.length.toLocaleString()}`}</div>
+          <div>{`Profiles: ${totalProfiles.toLocaleString()}`}</div>
+        </div>
+      )}
     </Sidebar>
   );
 };

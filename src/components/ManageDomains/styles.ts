@@ -1,11 +1,6 @@
 // components/ManageDomains/styles.ts
 import styled from "styled-components";
 
-export const Container = styled.div`
-  display: flex;
-  height: 100vh;
-`;
-
 export const Sidebar = styled.div`
   width: 300px;
   padding: 1rem;

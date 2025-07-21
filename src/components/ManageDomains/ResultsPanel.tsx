@@ -38,27 +38,6 @@ const DomainName = styled.div`
   text-decoration: underline;
 `;
 
-const patternMap: Record<number, string> = {
-  1: "first.last",
-  2: "firstlast",
-  3: "f.last",
-  4: "firstl",
-  5: "flast",
-  6: "last.first",
-  7: "lastfirst",
-  8: "lastf",
-  9: "f_last",
-  10: "first_l",
-  11: "first",
-  12: "last",
-  13: "first-middle-last",
-  14: "fml",
-  15: "first-middlelast",
-  16: "first-last",
-  17: "last-first",
-  18: "fmlast",
-};
-
 type ResultsPanelProps = {
   results: ResultItem[];
   expandedFirmId: number | null;
@@ -68,14 +47,8 @@ type ResultsPanelProps = {
   profilesByDomain: ProfilesByDomain;
   getSelectedExamIds: () => number[];
   expandedDomainId: number | null;
+  onSelectDomain: (domainId: number) => void;
 };
-
-const toTitleCase = (str: string) =>
-  str
-    .toLowerCase()
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 
 const ResultsPanel: React.FC<ResultsPanelProps> = ({
   results,
@@ -83,26 +56,14 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
   toggleFirmDomains,
   firmDomains,
   domainLoadingIds,
-  profilesByDomain,
-  getSelectedExamIds,
+  onSelectDomain,
 }) => {
-  const totalProfiles = results.reduce(
-    (acc, item) => acc + item.profile_count,
-    0
-  );
-
   const handleOpenDomainProfiles = (domainId: number) => {
-    const examIds = getSelectedExamIds();
-    if (!examIds.length) return;
-
-    const examPath = examIds.join("-");
-    const url = `/domain/${domainId}/exams/${examPath}/profiles`;
-    window.open(url, "_blank");
+    onSelectDomain(domainId); // sets domainId in parent
   };
 
   return (
     <MainContent>
-      <h2>{`${results.length} firms with ${totalProfiles} profiles`}</h2>
       {results.length === 0 ? (
         <p>No results. Select filters and hit Search.</p>
       ) : (
