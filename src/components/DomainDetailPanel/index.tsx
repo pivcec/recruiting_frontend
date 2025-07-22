@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import VerifyEmailButton from "./VerifyEmailButton";
-import GenerateGuessesButton from "./GenerateGuesses";
 import styled from "styled-components";
 import axios from "axios";
 
@@ -52,11 +51,10 @@ const HeaderRow = styled(Row)`
 
 const Select = styled.select`
   padding: 4px 6px;
-  font-size: 0.85rem;
+  font-size: 11px;
   max-width: 140px;
 `;
 
-// Add this styled div for the combined sticky container
 const StickyContainer = styled.div`
   position: sticky;
   top: 0;
@@ -65,17 +63,17 @@ const StickyContainer = styled.div`
   border-bottom: 2px solid #ccc;
 `;
 
-// Title styling can be simpler since now it's inside StickyContainer
 const Title = styled.div`
-  font-size: 20px;
+  font-size: 15px;
   font-weight: bold;
+  padding-top: 10px;
+  margin-right: 0.5rem;
   margin-bottom: 0.5rem;
 `;
 
 const TitleRow = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 0.5rem;
 `;
 
@@ -85,7 +83,7 @@ export const PrimaryButton = styled.button`
   border: none;
   padding: 6px 12px;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 11px;
   cursor: pointer;
 
   &:hover {
@@ -165,6 +163,7 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
 }) => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState("");
   const [selectedPattern, setSelectedPattern] = useState<number>(1);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -173,7 +172,13 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
   const [limit] = useState(100);
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetchProfiles = async () => {
+  // Store the batch ID returned from the batch API
+  const [batchId, setBatchId] = useState<string | null>(null);
+
+  // Store interval ID for polling so we can clear it properly
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchProfiles = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.post("/api/profiles-by-exams-domains", {
@@ -186,25 +191,87 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
       });
       setProfiles(response.data.results || []);
       setTotalCount(response.data.count || 0);
-    } catch (err) {
+      setError("");
+    } catch {
       setError("Failed to load profiles.");
     } finally {
       setLoading(false);
     }
+  }, [domainId, examIds, limit, offset, selectedPattern, selectedStatus]);
+
+  const pollBatchStatus = useCallback(
+    (batchToPoll: string) => {
+      // Clear any existing interval before setting a new one
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const { data } = await axios.get(
+            `/api/verify-email-batch-status/${batchToPoll}`
+          );
+
+          if (data.status === "completed" || data.status === "finished") {
+            // Done verifying
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+            }
+            setVerifying(false);
+            setBatchId(null);
+            setOffset(0);
+            fetchProfiles(); // Refresh with updated profiles
+          }
+        } catch (err) {
+          console.error("Failed to poll batch status", err);
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+          }
+          setVerifying(false);
+          setBatchId(null);
+        }
+      }, 3000);
+    },
+    [fetchProfiles]
+  );
+
+  const handleCheckAll = async () => {
+    try {
+      setVerifying(true);
+      // Start batch verification and get batch_id
+      const response = await axios.post("/api/verify-email-batch", {
+        domain_id: domainId,
+        exam_ids: examIds,
+        pattern_id: selectedPattern,
+      });
+
+      const returnedBatchId = response.data.batch_id;
+      if (!returnedBatchId) {
+        throw new Error("No batch_id returned from API");
+      }
+
+      setBatchId(returnedBatchId);
+      pollBatchStatus(returnedBatchId);
+    } catch (err) {
+      console.error("Batch verification failed", err);
+      setVerifying(false);
+    }
   };
 
   useEffect(() => {
-    if (domainId && examIds.length) {
+    if (domainId) {
       fetchProfiles();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domainId, examIds, offset]);
+  }, [fetchProfiles, domainId]);
 
+  // Clear polling interval on unmount
   useEffect(() => {
-    if (domainId && examIds.length) {
-      fetchProfiles();
-    }
-  }, [domainId, examIds, offset, selectedPattern, selectedStatus]);
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleVerified = (
     profileId: number,
@@ -225,10 +292,6 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
     );
   };
 
-  const handleGenerateComplete = () => {
-    fetchProfiles();
-  };
-
   const handlePrev = () => {
     setOffset((prev) => Math.max(0, prev - limit));
   };
@@ -245,8 +308,11 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
       <StickyContainer>
         <TitleRow>
           <Title>{`Guessed Emails @ ${domainName}`}</Title>
-          <PrimaryButton onClick={() => alert("Check all clicked!")}>
-            Check all!
+          <PrimaryButton
+            onClick={handleCheckAll}
+            disabled={verifying || loading}
+          >
+            {verifying ? "Verifying..." : "Check 1000"}
           </PrimaryButton>
         </TitleRow>
         <HeaderRow>
@@ -288,27 +354,9 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
       ) : (
         profiles.map((p) => {
           const guesses = p.email_guesses || [];
-          if (guesses.length === 0) {
-            return (
-              <Row key={p.id}>
-                <div>{toTitleCase(p.full_name)}</div>
-                <div colSpan={2}>
-                  <GenerateGuessesButton
-                    profileId={p.id}
-                    onComplete={handleGenerateComplete}
-                  />
-                </div>
-              </Row>
-            );
-          }
-
           return guesses.map((eg, index) => (
             <Row key={`${p.id}-${index}`}>
-              {index === 0 ? (
-                <div rowSpan={guesses.length}>{toTitleCase(p.full_name)}</div>
-              ) : (
-                <div />
-              )}
+              {index === 0 ? <div>{toTitleCase(p.full_name)}</div> : <div />}
               <div>{eg.email}</div>
               <div
                 style={{
@@ -337,14 +385,14 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
 
       <Pagination>
         <Button onClick={handlePrev} disabled={offset === 0}>
-          ◀ Prev
+          Previous
         </Button>
-        <span>
-          Showing {offset + 1}–{Math.min(offset + limit, totalCount)} of{" "}
+        <div>
+          Showing {offset + 1} - {Math.min(offset + limit, totalCount)} of{" "}
           {totalCount}
-        </span>
+        </div>
         <Button onClick={handleNext} disabled={offset + limit >= totalCount}>
-          Next ▶
+          Next
         </Button>
       </Pagination>
     </Wrapper>

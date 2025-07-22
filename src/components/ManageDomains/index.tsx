@@ -1,5 +1,5 @@
 // components/ManageDomains/index.tsx
-import React, { useState, ChangeEvent, useEffect } from "react";
+import React, { useState, ChangeEvent, useEffect, useMemo } from "react";
 import styled from "styled-components";
 import ExamFilterPanel from "./ExamFilterPanel";
 import DomainDetailPanel from "../DomainDetailPanel";
@@ -25,7 +25,7 @@ const ToggleButton = styled.button`
   left: 8px;
   z-index: 1000;
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: 11px;
   background-color: #eee;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -89,6 +89,7 @@ const ManageDomains: React.FC = () => {
   const [selectedExams, setSelectedExams] = useState<
     Record<string, SelectedExam>
   >({});
+  const [searchedExamIds, setSearchedExamIds] = useState<number[]>([]);
   const [employmentType, setEmploymentType] =
     useState<string>("employmentState");
   const [loading, setLoading] = useState<boolean>(false);
@@ -96,10 +97,6 @@ const ManageDomains: React.FC = () => {
   const [expandedFirmId, setExpandedFirmId] = useState<number | null>(null);
   const [firmDomains, setFirmDomains] = useState<FirmWithDomains>({});
   const [domainLoadingIds, setDomainLoadingIds] = useState<number[]>([]);
-  const [profilesByDomain, setProfilesByDomain] = useState<ProfilesByDomain>(
-    {}
-  );
-  const [expandedDomainId, setExpandedDomainId] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedDomainId, setSelectedDomainId] = useState<number | null>(null);
   const [selectedDomainName, setSelectedDomainName] = useState<string | null>(
@@ -176,6 +173,7 @@ const ManageDomains: React.FC = () => {
   const handleSearch = async () => {
     setLoading(true);
     const exam_ids = getSelectedExamIds();
+    setSearchedExamIds(exam_ids);
 
     try {
       const response = await fetch("http://localhost:8000/api/firms-by-exams", {
@@ -258,9 +256,7 @@ const ManageDomains: React.FC = () => {
               toggleFirmDomains={toggleFirmDomains}
               firmDomains={firmDomains}
               domainLoadingIds={domainLoadingIds}
-              profilesByDomain={profilesByDomain}
               getSelectedExamIds={getSelectedExamIds}
-              expandedDomainId={expandedDomainId}
               handleSelectDomain={handleSelectDomain}
             />
           </TopPanel>
@@ -273,7 +269,7 @@ const ManageDomains: React.FC = () => {
                 <DomainDetailPanel
                   domainName={selectedDomainName}
                   domainId={selectedDomainId}
-                  examIds={getSelectedExamIds()}
+                  examIds={searchedExamIds}
                 />
               </BottomPanel>
             </>

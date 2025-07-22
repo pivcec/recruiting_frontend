@@ -137,7 +137,7 @@ const ExamFilterPanel: React.FC<ExamFilterPanelProps> = ({
       </Button>
 
       {results.length > 0 && (
-        <div style={{ marginTop: "30px", fontSize: "20px" }}>
+        <div style={{ marginTop: "30px", fontSize: "11px" }}>
           <div>{`Firms: ${results.length.toLocaleString()}`}</div>
           <div>{`Profiles: ${totalProfiles.toLocaleString()}`}</div>
         </div>

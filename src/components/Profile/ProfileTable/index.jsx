@@ -30,7 +30,7 @@ const Section = styled.div`
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 1.125rem; /* text-lg */
+  font-size: 11px;
   font-weight: 700;
   margin-bottom: 0.5rem;
   text-transform: capitalize;

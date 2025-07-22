@@ -11,13 +11,13 @@ const Container = styled.div`
 `;
 
 const Heading = styled.h2`
-  font-size: 1.75rem;
+  font-size: 11px;
   font-weight: 600;
   margin-bottom: 1.5rem;
 `;
 
 const Message = styled.div`
-  font-size: 1rem;
+  font-size: 11px;
   margin-top: 2rem;
   color: ${({ error }) => (error ? "#d9534f" : "#333")};
 `;

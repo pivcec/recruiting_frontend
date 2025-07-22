@@ -23,7 +23,7 @@ const FirmHeader = styled.div`
 const ProfileCount = styled.span`
   font-weight: normal;
   color: #666;
-  font-size: 0.85em;
+  font-size: 11px;
 `;
 
 const DomainsWrapper = styled.div`
@@ -44,9 +44,7 @@ type ResultsPanelProps = {
   toggleFirmDomains: (firm_id: number) => void;
   firmDomains: FirmWithDomains;
   domainLoadingIds: number[];
-  profilesByDomain: ProfilesByDomain;
   getSelectedExamIds: () => number[];
-  expandedDomainId: number | null;
   handleSelectDomain: (domainName: string, domainId: number) => void;
 };
 
