@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { statusInfo } from "./index";
 import styled from "styled-components";
 
 const ModalOverlay = styled.div`
@@ -34,6 +35,29 @@ const CloseButton = styled.button`
   right: 16px;
   cursor: pointer;
 `;
+
+const ColoredStat = styled.li<{ bgColor: string }>`
+  background-color: ${({ bgColor }) => bgColor};
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  color: white;
+  font-weight: bold;
+`;
+
+const statusKeys = [
+  "ok",
+  "email_disabled",
+  "dead_server",
+  "invalid_mx",
+  "disposable",
+  "spamtrap",
+  "ok_for_all",
+  "smtp_protocol",
+  "antispam_system",
+  "unknown",
+  "invalid_syntax",
+];
 
 interface InfoModalProps {
   onClose: () => void;
@@ -88,7 +112,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ onClose, domainId }) => {
     <ModalOverlay onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <CloseButton onClick={onClose}>×</CloseButton>
-        <h3>Verified Email Stats</h3>
+        <h3>{`Verified Emails: ${stats?.total_verified}`}</h3>
 
         {loading && <p>Loading stats...</p>}
 
@@ -97,18 +121,18 @@ const InfoModal: React.FC<InfoModalProps> = ({ onClose, domainId }) => {
         {stats && (
           <>
             <ul>
-              <li>{`Total Verified: ${stats?.total_verified}`}</li>
-              <li>{`OK: ${stats?.ok_count}`}</li>
-              <li>{`Email Disabled: ${stats?.email_disabled_count}`}</li>
-              <li>{`Dead Server: ${stats.dead_server_count}`}</li>
-              <li>{`Invalid MX: ${stats.invalid_mx_count}`}</li>
-              <li>{`Disposable: ${stats.disposable_count}`}</li>
-              <li>{`Spamtrap: ${stats.spamtrap_count}`}</li>
-              <li>{`Ok for All: ${stats.ok_for_all_count}`}</li>
-              <li>{`Protocol: ${stats.smtp_protocol_count}`}</li>
-              <li>{`Antispam System: ${stats.antispam_system_count}`}</li>
-              <li>{`Unknown: ${stats.unknown_count}`}</li>
-              <li>{`Invalid Syntax: ${stats.invalid_syntax_count}`}</li>
+              {statusKeys.map((key) => {
+                const countKey = `${key}_count` as keyof EmailStats;
+                const count = stats[countKey];
+                const info = statusInfo[key];
+                if (!info) return null;
+
+                return (
+                  <ColoredStat key={key} bgColor={info.color}>
+                    {`${info.label}: ${count}`}
+                  </ColoredStat>
+                );
+              })}
             </ul>
           </>
         )}

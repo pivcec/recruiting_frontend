@@ -116,6 +116,15 @@ const EmailStatus = styled.div<{ bgColor: string }>`
   text-align: center;
 `;
 
+const StickyBottomNav = styled.div`
+  position: sticky;
+  bottom: 0;
+  background: white;
+  z-index: 100;
+  border-top: 2px solid #ccc;
+  padding: 10px;
+`;
+
 const toTitleCase = (str: string) =>
   str
     .toLowerCase()
@@ -170,7 +179,7 @@ type Profile = {
   email_guesses: EmailGuess[];
 };
 
-const statusInfo: Record<string, { label: string; color: string }> = {
+export const statusInfo: Record<string, { label: string; color: string }> = {
   ok: { label: "Valid and Deliverable", color: "#28a745" },
   email_disabled: { label: "Email Disabled / Non-Existent", color: "#dc3545" },
   dead_server: { label: "Dead Server / No MX Record", color: "#dc3545" },
@@ -405,18 +414,20 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
         )
       )}
 
-      <Pagination>
-        <Button onClick={handlePrev} disabled={offset === 0}>
-          Previous
-        </Button>
-        <PaginationLabel>
-          Showing {offset + 1} - {Math.min(offset + limit, totalCount)} of{" "}
-          {totalCount}
-        </PaginationLabel>
-        <Button onClick={handleNext} disabled={offset + limit >= totalCount}>
-          Next
-        </Button>
-      </Pagination>
+      <StickyBottomNav>
+        <Pagination>
+          <Button onClick={handlePrev} disabled={offset === 0}>
+            Previous
+          </Button>
+          <PaginationLabel>
+            Showing {offset + 1} - {Math.min(offset + limit, totalCount)} of{" "}
+            {totalCount}
+          </PaginationLabel>
+          <Button onClick={handleNext} disabled={offset + limit >= totalCount}>
+            Next
+          </Button>
+        </Pagination>
+      </StickyBottomNav>
     </Wrapper>
   );
 };
