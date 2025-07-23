@@ -2,10 +2,9 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import VerifyEmailButton from "./VerifyEmailButton";
 import styled from "styled-components";
 import axios from "axios";
+import Modal from "./Modal";
 
-const Wrapper = styled.div`
-  padding: 0 2rem;
-`;
+const Wrapper = styled.div``;
 
 const Pagination = styled.div`
   margin-top: 1.5rem;
@@ -14,6 +13,10 @@ const Pagination = styled.div`
   justify-content: center;
   align-items: center;
   gap: 1rem;
+`;
+
+const PaginationLabel = styled.div`
+  font-size: 13px;
 `;
 
 const Button = styled.button`
@@ -34,8 +37,9 @@ const Row = styled.div`
   display: grid;
   grid-template-columns: 2fr 3fr 3fr;
   border-bottom: 1px solid #eee;
-  padding: 0.5rem 0;
   align-items: center;
+  font-size: 12px;
+  padding: 0 10px;
 `;
 
 const HeaderRow = styled(Row)`
@@ -44,9 +48,7 @@ const HeaderRow = styled(Row)`
   background: white;
   z-index: 100;
   font-weight: bold;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #ccc;
+  padding: 0 10px 10px 10px;
 `;
 
 const Select = styled.select`
@@ -67,14 +69,19 @@ const Title = styled.div`
   font-size: 15px;
   font-weight: bold;
   padding-top: 10px;
-  margin-right: 0.5rem;
   margin-bottom: 0.5rem;
+`;
+
+const CheckAllRow = styled.div`
+  padding-top: 10px;
+  text-align: center;
 `;
 
 const TitleRow = styled.div`
   display: flex;
   align-items: center;
   margin-bottom: 0.5rem;
+  padding: 0 10px;
 `;
 
 export const PrimaryButton = styled.button`
@@ -95,6 +102,26 @@ export const PrimaryButton = styled.button`
     cursor: not-allowed;
   }
 `;
+
+const CellLabel = styled.div`
+  margin-bottom: 25px;
+`;
+
+const EmailStatus = styled.div<{ bgColor: string }>`
+  background-color: ${(props) => props.bgColor};
+  color: #fff;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+`;
+
+const toTitleCase = (str: string) =>
+  str
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 
 const patternMap: Record<number, string> = {
   1: "first.last",
@@ -117,6 +144,18 @@ const patternMap: Record<number, string> = {
   18: "fmlast",
   19: "first_last",
 };
+
+const InfoIcon = styled.svg`
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  cursor: pointer;
+  fill: #007bff;
+
+  &:hover {
+    fill: #0056b3;
+  }
+`;
 
 type EmailGuess = {
   id: number;
@@ -143,13 +182,6 @@ const statusInfo: Record<string, { label: string; color: string }> = {
   antispam_system: { label: "Blocked by Anti-Spam System", color: "#6c757d" },
 };
 
-const toTitleCase = (str: string) =>
-  str
-    .toLowerCase()
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-
 interface DomainProfilesProps {
   domainName: string | null;
   domainId: number;
@@ -167,15 +199,10 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
   const [error, setError] = useState("");
   const [selectedPattern, setSelectedPattern] = useState<number>(1);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-
   const [offset, setOffset] = useState(0);
   const [limit] = useState(100);
   const [totalCount, setTotalCount] = useState(0);
-
-  // Store the batch ID returned from the batch API
-  const [batchId, setBatchId] = useState<string | null>(null);
-
-  // Store interval ID for polling so we can clear it properly
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchProfiles = useCallback(async () => {
@@ -201,7 +228,6 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
 
   const pollBatchStatus = useCallback(
     (batchToPoll: string) => {
-      // Clear any existing interval before setting a new one
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
@@ -213,14 +239,12 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
           );
 
           if (data.status === "completed" || data.status === "finished") {
-            // Done verifying
             if (pollingIntervalRef.current) {
               clearInterval(pollingIntervalRef.current);
             }
             setVerifying(false);
-            setBatchId(null);
             setOffset(0);
-            fetchProfiles(); // Refresh with updated profiles
+            fetchProfiles();
           }
         } catch (err) {
           console.error("Failed to poll batch status", err);
@@ -228,7 +252,6 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
             clearInterval(pollingIntervalRef.current);
           }
           setVerifying(false);
-          setBatchId(null);
         }
       }, 3000);
     },
@@ -238,7 +261,6 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
   const handleCheckAll = async () => {
     try {
       setVerifying(true);
-      // Start batch verification and get batch_id
       const response = await axios.post("/api/verify-email-batch", {
         domain_id: domainId,
         exam_ids: examIds,
@@ -246,11 +268,8 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
       });
 
       const returnedBatchId = response.data.batch_id;
-      if (!returnedBatchId) {
-        throw new Error("No batch_id returned from API");
-      }
+      if (!returnedBatchId) throw new Error("No batch_id returned");
 
-      setBatchId(returnedBatchId);
       pollBatchStatus(returnedBatchId);
     } catch (err) {
       console.error("Batch verification failed", err);
@@ -264,7 +283,6 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
     }
   }, [fetchProfiles, domainId]);
 
-  // Clear polling interval on unmount
   useEffect(() => {
     return () => {
       if (pollingIntervalRef.current) {
@@ -305,18 +323,28 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
 
   return (
     <Wrapper>
+      {showInfoModal && (
+        <Modal onClose={() => setShowInfoModal(false)} domainId={domainId} />
+      )}
+
       <StickyContainer>
-        <TitleRow>
-          <Title>{`Guessed Emails @ ${domainName}`}</Title>
+        <CheckAllRow>
           <PrimaryButton
             onClick={handleCheckAll}
             disabled={verifying || loading}
           >
             {verifying ? "Verifying..." : "Check 1000"}
           </PrimaryButton>
+        </CheckAllRow>
+        <TitleRow>
+          <Title>{`Guessed Emails @ ${domainName}`}</Title>
+          <InfoIcon onClick={() => setShowInfoModal(true)} viewBox="0 0 20 20">
+            <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-12.5a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM9 9.25a.75.75 0 011.5 0v4.5a.75.75 0 01-1.5 0v-4.5z" />
+          </InfoIcon>
         </TitleRow>
+
         <HeaderRow>
-          <div style={{ marginBottom: 25 }}>Full Name</div>
+          <CellLabel>Full Name</CellLabel>
           <div>
             <label style={{ display: "block" }}>Pattern</label>
             <Select
@@ -352,19 +380,13 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
           <div>No profiles found.</div>
         </Row>
       ) : (
-        profiles.map((p) => {
-          const guesses = p.email_guesses || [];
-          return guesses.map((eg, index) => (
-            <Row key={`${p.id}-${index}`}>
+        profiles.map((p) =>
+          p.email_guesses.map((eg, index) => (
+            <Row key={`${p.id}-${eg.id}`}>
               {index === 0 ? <div>{toTitleCase(p.full_name)}</div> : <div />}
               <div>{eg.email}</div>
-              <div
-                style={{
-                  backgroundColor: statusInfo[eg.status || ""]?.color,
-                  color: "#fff",
-                  padding: "4px 6px",
-                  borderRadius: "4px",
-                }}
+              <EmailStatus
+                bgColor={statusInfo[eg.status || ""]?.color || "#fff"}
               >
                 {eg.status ? (
                   statusInfo[eg.status]?.label || eg.status
@@ -377,20 +399,20 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
                     }
                   />
                 )}
-              </div>
+              </EmailStatus>
             </Row>
-          ));
-        })
+          ))
+        )
       )}
 
       <Pagination>
         <Button onClick={handlePrev} disabled={offset === 0}>
           Previous
         </Button>
-        <div>
+        <PaginationLabel>
           Showing {offset + 1} - {Math.min(offset + limit, totalCount)} of{" "}
           {totalCount}
-        </div>
+        </PaginationLabel>
         <Button onClick={handleNext} disabled={offset + limit >= totalCount}>
           Next
         </Button>

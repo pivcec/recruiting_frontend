@@ -5,7 +5,7 @@ import { PrimaryButton } from "./index";
 
 const VerifyEmailButton = ({ emailGuessId, email, onVerified }) => {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState(null);
+  const [status, setStatus] = useState<null | String>(null);
 
   const handleVerify = async () => {
     setLoading(true);

@@ -102,19 +102,24 @@ const ManageDomains: React.FC = () => {
   const [selectedDomainName, setSelectedDomainName] = useState<string | null>(
     null
   );
-  const [topPanelHeight, setTopPanelHeight] = useState<number>(400);
+  const [topPanelHeight, setTopPanelHeight] = useState<number>(
+    typeof window !== "undefined" ? window.innerHeight : 800
+  );
   const [isResizing, setIsResizing] = useState(false);
   const [hasUserResized, setHasUserResized] = useState(false);
 
   useEffect(() => {
     if (loading) return;
 
-    if (selectedDomainId) {
-      if (!hasUserResized) {
-        setTopPanelHeight(400);
-      }
-    } else {
+    if (selectedDomainId && !hasUserResized) {
+      setTopPanelHeight(400);
+    }
+
+    if (!selectedDomainId && !hasUserResized) {
       setTopPanelHeight(window.innerHeight);
+    }
+
+    if (!selectedDomainId) {
       setHasUserResized(false);
     }
   }, [loading, selectedDomainId, hasUserResized]);

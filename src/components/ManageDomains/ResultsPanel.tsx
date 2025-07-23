@@ -11,13 +11,13 @@ const MainContent = styled.div`
 `;
 
 const FirmHeader = styled.div`
+  font-size: 12px;
   cursor: pointer;
   font-weight: bold;
   color: #007bff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.25rem;
 `;
 
 const ProfileCount = styled.span`
@@ -28,10 +28,11 @@ const ProfileCount = styled.span`
 
 const DomainsWrapper = styled.div`
   padding-left: 1rem;
-  margin-top: 0.5rem;
+  font-size: 12px;
 `;
 
 const DomainName = styled.div`
+  font-size: 12px;
   cursor: pointer;
   color: blue;
   padding: 0.25rem 0;
@@ -71,7 +72,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
           const isLoadingDomains = domainLoadingIds.includes(item.firm_id);
 
           return (
-            <div key={item.firm_id} style={{ marginBottom: "1rem" }}>
+            <div key={item.firm_id}>
               <FirmHeader onClick={() => toggleFirmDomains(item.firm_id)}>
                 <span>
                   {item.firm_name}{" "}
