@@ -84,36 +84,53 @@ const statusKeys = [
   "invalid_syntax",
 ];
 
+const patternMap = {
+  0: "all",
+  1: "first.last",
+  2: "firstlast",
+  3: "f.last",
+  4: "firstl",
+  5: "flast",
+  6: "last.first",
+  7: "lastfirst",
+  8: "lastf",
+  9: "f_last",
+  10: "first_l",
+  11: "first",
+  12: "last",
+  13: "first-middle-last",
+  14: "fml",
+  15: "first-middlelast",
+  16: "first-last",
+  17: "last-first",
+  18: "fmlast",
+  19: "first_last",
+};
+
 interface CheckAllModalProps {
   domainId: number;
   domainName: string;
   examIds: number[];
-  selectedPattern: number | "all";
   isChecking: boolean;
-  patternMap: Record<number, string>;
   onClose: () => void;
   setIsChecking: React.Dispatch<React.SetStateAction<boolean>>;
-  setOffset: React.Dispatch<React.SetStateAction<number>>;
-  fetchEmailGuesses: () => void;
+  fetchStats: () => void;
+  updateFirmsDomains: () => Promise<void>;
 }
 
 const CheckAllModal: React.FC<CheckAllModalProps> = ({
   domainId,
   domainName,
   examIds,
-  selectedPattern,
   isChecking,
-  patternMap,
   onClose,
   setIsChecking,
-  setOffset,
-  fetchEmailGuesses,
+  fetchStats,
+  updateFirmsDomains,
 }) => {
   const [completeCheckData, setCompleteCheckData] = useState<any>(null);
   const pollingIntervalRef = useRef<number | null>(null);
-  const [patternToCheck, setPatternToCheck] = useState<number | "all">(
-    selectedPattern
-  );
+  const [patternToCheck, setPatternToCheck] = useState<number | "all">("all");
 
   const pollBatchStatus = useCallback(
     (batchToPoll: string) => {
@@ -129,8 +146,8 @@ const CheckAllModal: React.FC<CheckAllModalProps> = ({
 
           if (data.status === "completed" || data.status === "finished") {
             clearInterval(pollingIntervalRef.current!);
-            setOffset(0);
-            fetchEmailGuesses();
+            fetchStats();
+            updateFirmsDomains();
             setCompleteCheckData(data.counts_by_pattern);
             setIsChecking(false);
           }
@@ -141,7 +158,7 @@ const CheckAllModal: React.FC<CheckAllModalProps> = ({
         }
       }, 3000);
     },
-    [fetchEmailGuesses, setIsChecking, setOffset]
+    [fetchStats, updateFirmsDomains, setIsChecking]
   );
 
   const handleCheckAll = async () => {

@@ -253,12 +253,12 @@ const ManageDomains: React.FC = () => {
             <ResultsPanel
               results={results}
               expandedFirmId={expandedFirmId}
-              toggleFirmDomains={toggleFirmDomains}
               firmDomains={firmDomains}
               domainLoadingIds={domainLoadingIds}
+              selectedDomainName={selectedDomainName}
+              toggleFirmDomains={toggleFirmDomains}
               getSelectedExamIds={getSelectedExamIds}
               handleSelectDomain={handleSelectDomain}
-              selectedDomainName={selectedDomainName}
             />
           </TopPanel>
 
@@ -271,6 +271,7 @@ const ManageDomains: React.FC = () => {
                   domainName={selectedDomainName}
                   domainId={selectedDomainId}
                   examIds={searchedExamIds}
+                  updateFirmsDomains={handleSearch}
                 />
               </BottomPanel>
             </>
