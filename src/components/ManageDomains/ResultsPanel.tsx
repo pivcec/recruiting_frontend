@@ -2,7 +2,7 @@
 import React from "react";
 import styled from "styled-components";
 
-import type { ResultItem, FirmWithDomains, ProfilesByDomain } from "./types";
+import type { ResultItem, FirmWithDomains } from "./types";
 
 const MainContent = styled.div`
   flex: 1;
@@ -75,13 +75,15 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
           const domains = firmDomains[item.firm_id] || [];
           const isLoadingDomains = domainLoadingIds.includes(item.firm_id);
 
+          console.log("item", item);
+
           return (
             <div key={item.firm_id}>
               <FirmHeader onClick={() => toggleFirmDomains(item.firm_id)}>
                 <span>
                   {item.firm_name}{" "}
                   <ProfileCount>
-                    ({item.profile_count.toLocaleString()} profiles)
+                    {`(${item.profile_count.toLocaleString()} profiles, ${item.email_guess_count.toLocaleString()} guessed emails, ${item.verified_email_guess_count.toLocaleString()} checked guesses)`}
                   </ProfileCount>
                 </span>
               </FirmHeader>

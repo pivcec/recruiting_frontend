@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { statusInfo } from "./index";
+import { statusInfo, patternMap } from "./index";
+import Tabs from "./Tabs";
 import styled from "styled-components";
 
 const ModalOverlay = styled.div`
@@ -59,13 +60,9 @@ const statusKeys = [
   "invalid_syntax",
 ];
 
-interface InfoModalProps {
-  onClose: () => void;
-  domainId: number;
-}
-
-interface EmailStats {
-  domain_id: number;
+interface PatternStat {
+  pattern_id: number | "all";
+  pattern_name: string;
   total_emails: number;
   total_verified: number;
   ok_count: number;
@@ -81,9 +78,29 @@ interface EmailStats {
   invalid_syntax_count: number;
 }
 
-const InfoModal: React.FC<InfoModalProps> = ({ onClose, domainId }) => {
-  const [stats, setStats] = useState<EmailStats | null>(null);
+interface DomainStatsResponse {
+  domain_id: number;
+  pattern_stats: PatternStat[];
+}
+
+interface InfoModalProps {
+  onClose: () => void;
+  domainId: number;
+  domainName: string;
+}
+
+const formatNumberWithCommas = (num: number): string => {
+  return num.toLocaleString();
+};
+
+const InfoModal: React.FC<InfoModalProps> = ({
+  onClose,
+  domainId,
+  domainName,
+}) => {
+  const [stats, setStats] = useState<DomainStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -108,28 +125,37 @@ const InfoModal: React.FC<InfoModalProps> = ({ onClose, domainId }) => {
     fetchStats();
   }, [domainId]);
 
+  const patternStats = stats?.pattern_stats[activeTab];
+
   return (
     <ModalOverlay onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <CloseButton onClick={onClose}>×</CloseButton>
-        <h3>{`Checked Email Guesses: ${stats?.total_verified}`}</h3>
-
-        {loading && <p>Loading stats...</p>}
-
-        {error && <p style={{ color: "red" }}>Error: {error}</p>}
-
-        {stats && (
+        {loading && !patternStats && <div>Loading...</div>}
+        {!loading && patternStats && (
           <>
+            <Tabs
+              patternMap={patternMap}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+
+            <h3>{`${formatNumberWithCommas(
+              patternStats.total_verified
+            )} checked out of ${formatNumberWithCommas(
+              patternStats.total_emails
+            )} total guesses for ${domainName}`}</h3>
+
             <div>
               {statusKeys.map((key) => {
-                const countKey = `${key}_count` as keyof EmailStats;
-                const count = stats[countKey];
+                const countKey = `${key}_count`;
+                const count = patternStats[countKey];
                 const info = statusInfo[key];
                 if (!info) return null;
 
                 return (
                   <ColoredStat key={key} bgColor={info.color}>
-                    {`${info.label}: ${count}`}
+                    {`${info.label}: ${formatNumberWithCommas(count)}`}
                   </ColoredStat>
                 );
               })}

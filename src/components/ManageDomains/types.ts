@@ -17,6 +17,8 @@ export type ResultItem = {
   firm_id: number;
   firm_name: string;
   profile_count: number;
+  email_guess_count: number;
+  verified_email_guess_count: number;
 };
 
 export type Domain = {

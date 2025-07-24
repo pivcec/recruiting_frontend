@@ -77,6 +77,7 @@ const InfoIcon = styled.svg`
 `;
 
 export const patternMap: Record<number, string> = {
+  0: "all",
   1: "first.last",
   2: "firstlast",
   3: "f.last",
@@ -178,6 +179,7 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
         <InfoModal
           onClose={() => setShowInfoModal(false)}
           domainId={domainId}
+          domainName={domainName}
         />
       )}
       {showCheckAllModal && domainName && (

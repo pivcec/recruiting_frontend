@@ -5,12 +5,7 @@ import ExamFilterPanel from "./ExamFilterPanel";
 import DomainDetailPanel from "../DomainDetailPanel";
 import ResultsPanel from "./ResultsPanel";
 
-import type {
-  SelectedExam,
-  ResultItem,
-  FirmWithDomains,
-  ProfilesByDomain,
-} from "./types";
+import type { SelectedExam, ResultItem, FirmWithDomains } from "./types";
 
 import { exams } from "../../consts.ts";
 
