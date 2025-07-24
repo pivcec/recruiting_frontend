@@ -1,61 +1,13 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import VerifyEmailButton from "./VerifyEmailButton";
+import React, { useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
 import axios from "axios";
-import Modal from "./Modal";
+import EmailRow from "./EmailRow";
+import FilterBar from "./FilterBar";
+import PaginationControls from "./PaginationControls";
+import InfoModal from "./InfoModal";
+import CompleteCheckModal from "./CheckAllModal";
 
 const Wrapper = styled.div``;
-
-const Pagination = styled.div`
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const PaginationLabel = styled.div`
-  font-size: 13px;
-`;
-
-const Button = styled.button`
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-
-  &:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-  }
-`;
-
-const Row = styled.div`
-  display: grid;
-  grid-template-columns: 2fr 3fr 3fr;
-  border-bottom: 1px solid #eee;
-  align-items: center;
-  font-size: 12px;
-  padding: 0 10px;
-`;
-
-const HeaderRow = styled(Row)`
-  position: sticky;
-  top: 0;
-  background: white;
-  z-index: 100;
-  font-weight: bold;
-  padding: 0 10px 10px 10px;
-`;
-
-const Select = styled.select`
-  padding: 4px 6px;
-  font-size: 11px;
-  max-width: 140px;
-`;
 
 const StickyContainer = styled.div`
   position: sticky;
@@ -63,6 +15,22 @@ const StickyContainer = styled.div`
   background: white;
   z-index: 100;
   border-bottom: 2px solid #ccc;
+`;
+
+const StickyBottomNav = styled.div`
+  position: sticky;
+  bottom: 0;
+  background: white;
+  z-index: 100;
+  border-top: 2px solid #ccc;
+  padding: 10px;
+`;
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0 10px;
 `;
 
 const Title = styled.div`
@@ -75,13 +43,6 @@ const Title = styled.div`
 const CheckAllRow = styled.div`
   padding-top: 10px;
   text-align: center;
-`;
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 0.5rem;
-  padding: 0 10px;
 `;
 
 export const PrimaryButton = styled.button`
@@ -103,36 +64,19 @@ export const PrimaryButton = styled.button`
   }
 `;
 
-const CellLabel = styled.div`
-  margin-bottom: 25px;
+const InfoIcon = styled.svg`
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  cursor: pointer;
+  fill: #007bff;
+
+  &:hover {
+    fill: #0056b3;
+  }
 `;
 
-const EmailStatus = styled.div<{ bgColor: string }>`
-  background-color: ${(props) => props.bgColor};
-  color: #fff;
-  padding: 4px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  text-align: center;
-`;
-
-const StickyBottomNav = styled.div`
-  position: sticky;
-  bottom: 0;
-  background: white;
-  z-index: 100;
-  border-top: 2px solid #ccc;
-  padding: 10px;
-`;
-
-const toTitleCase = (str: string) =>
-  str
-    .toLowerCase()
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-
-const patternMap: Record<number, string> = {
+export const patternMap: Record<number, string> = {
   1: "first.last",
   2: "firstlast",
   3: "f.last",
@@ -154,31 +98,6 @@ const patternMap: Record<number, string> = {
   19: "first_last",
 };
 
-const InfoIcon = styled.svg`
-  width: 16px;
-  height: 16px;
-  margin-left: 8px;
-  cursor: pointer;
-  fill: #007bff;
-
-  &:hover {
-    fill: #0056b3;
-  }
-`;
-
-type EmailGuess = {
-  id: number;
-  email: string;
-  pattern_id: number;
-  status: string | null;
-};
-
-type Profile = {
-  id: number;
-  full_name: string;
-  email_guesses: EmailGuess[];
-};
-
 export const statusInfo: Record<string, { label: string; color: string }> = {
   ok: { label: "Valid and Deliverable", color: "#28a745" },
   email_disabled: { label: "Email Disabled / Non-Existent", color: "#dc3545" },
@@ -189,6 +108,15 @@ export const statusInfo: Record<string, { label: string; color: string }> = {
   ok_for_all: { label: "Accept-All Domain", color: "#17a2b8" },
   smtp_protocol: { label: "SMTP Protocol Terminated", color: "#6c757d" },
   antispam_system: { label: "Blocked by Anti-Spam System", color: "#6c757d" },
+};
+
+type EmailGuess = {
+  profile_id: number;
+  full_name: string;
+  email_guess_id: number;
+  email: string;
+  pattern_id: number;
+  status: string | null;
 };
 
 interface DomainProfilesProps {
@@ -202,19 +130,19 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
   domainId,
   examIds,
 }) => {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [emailGuesses, setEmailGuesses] = useState<EmailGuess[]>([]);
   const [loading, setLoading] = useState(true);
-  const [verifying, setVerifying] = useState(false);
+  const [showCheckAllModal, setShowCheckAllModal] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState("");
-  const [selectedPattern, setSelectedPattern] = useState<number>(1);
+  const [selectedPattern, setSelectedPattern] = useState<number | "all">("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [offset, setOffset] = useState(0);
   const [limit] = useState(100);
   const [totalCount, setTotalCount] = useState(0);
   const [showInfoModal, setShowInfoModal] = useState(false);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchProfiles = useCallback(async () => {
+  const fetchEmailGuesses = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.post("/api/profiles-by-exams-domains", {
@@ -222,10 +150,10 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
         exam_ids: examIds,
         limit,
         offset,
-        pattern_id: selectedPattern,
+        pattern_id: selectedPattern === "all" ? null : selectedPattern,
         status: selectedStatus === "all" ? null : selectedStatus,
       });
-      setProfiles(response.data.results || []);
+      setEmailGuesses(response.data.results || []);
       setTotalCount(response.data.count || 0);
       setError("");
     } catch {
@@ -235,199 +163,91 @@ const DomainProfiles: React.FC<DomainProfilesProps> = ({
     }
   }, [domainId, examIds, limit, offset, selectedPattern, selectedStatus]);
 
-  const pollBatchStatus = useCallback(
-    (batchToPoll: string) => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-
-      pollingIntervalRef.current = setInterval(async () => {
-        try {
-          const { data } = await axios.get(
-            `/api/verify-email-batch-status/${batchToPoll}`
-          );
-
-          if (data.status === "completed" || data.status === "finished") {
-            if (pollingIntervalRef.current) {
-              clearInterval(pollingIntervalRef.current);
-            }
-            setVerifying(false);
-            setOffset(0);
-            fetchProfiles();
-          }
-        } catch (err) {
-          console.error("Failed to poll batch status", err);
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-          }
-          setVerifying(false);
-        }
-      }, 3000);
-    },
-    [fetchProfiles]
-  );
-
-  const handleCheckAll = async () => {
-    try {
-      setVerifying(true);
-      const response = await axios.post("/api/verify-email-batch", {
-        domain_id: domainId,
-        exam_ids: examIds,
-        pattern_id: selectedPattern,
-      });
-
-      const returnedBatchId = response.data.batch_id;
-      if (!returnedBatchId) throw new Error("No batch_id returned");
-
-      pollBatchStatus(returnedBatchId);
-    } catch (err) {
-      console.error("Batch verification failed", err);
-      setVerifying(false);
-    }
-  };
-
   useEffect(() => {
     if (domainId) {
-      fetchProfiles();
+      fetchEmailGuesses();
     }
-  }, [fetchProfiles, domainId]);
+  }, [fetchEmailGuesses, domainId]);
 
-  useEffect(() => {
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
-  }, []);
-
-  const handleVerified = (
-    profileId: number,
-    emailGuessId: number,
-    status: string
-  ) => {
-    setProfiles((prev) =>
-      prev.map((profile) =>
-        profile.id === profileId
-          ? {
-              ...profile,
-              email_guesses: profile.email_guesses.map((eg) =>
-                eg.id === emailGuessId ? { ...eg, status } : eg
-              ),
-            }
-          : profile
-      )
-    );
-  };
-
-  const handlePrev = () => {
-    setOffset((prev) => Math.max(0, prev - limit));
-  };
-
-  const handleNext = () => {
-    setOffset((prev) => prev + limit);
-  };
-
-  if (loading) return <Wrapper>Loading...</Wrapper>;
-  if (error) return <Wrapper>{error}</Wrapper>;
+  const handlePrev = () => setOffset((prev) => Math.max(0, prev - limit));
+  const handleNext = () => setOffset((prev) => prev + limit);
 
   return (
     <Wrapper>
       {showInfoModal && (
-        <Modal onClose={() => setShowInfoModal(false)} domainId={domainId} />
+        <InfoModal
+          onClose={() => setShowInfoModal(false)}
+          domainId={domainId}
+        />
+      )}
+      {showCheckAllModal && domainName && (
+        <CompleteCheckModal
+          domainId={domainId}
+          domainName={domainName}
+          examIds={examIds}
+          selectedPattern={selectedPattern}
+          isChecking={isChecking}
+          patternMap={patternMap}
+          onClose={() => setShowCheckAllModal(false)}
+          setIsChecking={setIsChecking}
+          setOffset={setOffset}
+          fetchEmailGuesses={fetchEmailGuesses}
+        />
       )}
 
-      <StickyContainer>
-        <CheckAllRow>
-          <PrimaryButton
-            onClick={handleCheckAll}
-            disabled={verifying || loading}
-          >
-            {verifying ? "Verifying..." : "Check 1000"}
-          </PrimaryButton>
-        </CheckAllRow>
-        <TitleRow>
-          <Title>{`Guessed Emails @ ${domainName}`}</Title>
-          <InfoIcon onClick={() => setShowInfoModal(true)} viewBox="0 0 20 20">
-            <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-12.5a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM9 9.25a.75.75 0 011.5 0v4.5a.75.75 0 01-1.5 0v-4.5z" />
-          </InfoIcon>
-        </TitleRow>
-
-        <HeaderRow>
-          <CellLabel>Full Name</CellLabel>
-          <div>
-            <label style={{ display: "block" }}>Pattern</label>
-            <Select
-              value={selectedPattern}
-              onChange={(e) => setSelectedPattern(parseInt(e.target.value))}
-            >
-              {Object.entries(patternMap).map(([id, name]) => (
-                <option key={id} value={id}>
-                  {name}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <label style={{ display: "block" }}>Status</label>
-            <Select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-            >
-              <option value="all">All</option>
-              {Object.entries(statusInfo).map(([key, { label }]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </HeaderRow>
-      </StickyContainer>
-
-      {profiles.length === 0 ? (
-        <Row>
-          <div>No profiles found.</div>
-        </Row>
-      ) : (
-        profiles.map((p) =>
-          p.email_guesses.map((eg, index) => (
-            <Row key={`${p.id}-${eg.id}`}>
-              {index === 0 ? <div>{toTitleCase(p.full_name)}</div> : <div />}
-              <div>{eg.email}</div>
-              <EmailStatus
-                bgColor={statusInfo[eg.status || ""]?.color || "#fff"}
+      {loading && <div>loading</div>}
+      {error && <div>error</div>}
+      {!loading && !error && (
+        <>
+          <StickyContainer>
+            <CheckAllRow>
+              <PrimaryButton
+                onClick={() => setShowCheckAllModal(true)}
+                disabled={showCheckAllModal || loading}
               >
-                {eg.status ? (
-                  statusInfo[eg.status]?.label || eg.status
-                ) : (
-                  <VerifyEmailButton
-                    emailGuessId={eg.id}
-                    email={eg.email}
-                    onVerified={(res) =>
-                      handleVerified(p.id, res.email_guess_id, res.status)
-                    }
-                  />
-                )}
-              </EmailStatus>
-            </Row>
-          ))
-        )
-      )}
+                {showCheckAllModal
+                  ? "showCheckAllModal..."
+                  : "Check Email Guesses"}
+              </PrimaryButton>
+            </CheckAllRow>
 
-      <StickyBottomNav>
-        <Pagination>
-          <Button onClick={handlePrev} disabled={offset === 0}>
-            Previous
-          </Button>
-          <PaginationLabel>
-            Showing {offset + 1} - {Math.min(offset + limit, totalCount)} of{" "}
-            {totalCount}
-          </PaginationLabel>
-          <Button onClick={handleNext} disabled={offset + limit >= totalCount}>
-            Next
-          </Button>
-        </Pagination>
-      </StickyBottomNav>
+            <TitleRow>
+              <Title>{`Guessed Emails @ ${domainName}`}</Title>
+              <InfoIcon
+                onClick={() => setShowInfoModal(true)}
+                viewBox="0 0 20 20"
+              >
+                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-12.5a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM9 9.25a.75.75 0 011.5 0v4.5a.75.75 0 01-1.5 0v-4.5z" />
+              </InfoIcon>
+            </TitleRow>
+
+            <FilterBar
+              selectedPattern={selectedPattern}
+              setSelectedPattern={setSelectedPattern}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
+            />
+          </StickyContainer>
+
+          {emailGuesses.length === 0 ? (
+            <div style={{ padding: "10px" }}>No profiles found.</div>
+          ) : (
+            emailGuesses.map((eg) => (
+              <EmailRow key={eg.email_guess_id} guess={eg} />
+            ))
+          )}
+
+          <StickyBottomNav>
+            <PaginationControls
+              offset={offset}
+              limit={limit}
+              totalCount={totalCount}
+              onPrev={handlePrev}
+              onNext={handleNext}
+            />
+          </StickyBottomNav>
+        </>
+      )}
     </Wrapper>
   );
 };

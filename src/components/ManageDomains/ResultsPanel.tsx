@@ -27,16 +27,18 @@ const ProfileCount = styled.span`
 `;
 
 const DomainsWrapper = styled.div`
-  padding-left: 1rem;
+  padding-left: 5px;
   font-size: 12px;
 `;
 
-const DomainName = styled.div`
+const DomainName = styled.div<{ selected: boolean }>`
   font-size: 12px;
   cursor: pointer;
   color: blue;
   padding: 0.25rem 0;
   text-decoration: underline;
+  background-color: ${({ selected }) => (selected ? "#e6f2ff" : "transparent")};
+  border-radius: 4px;
 `;
 
 type ResultsPanelProps = {
@@ -47,6 +49,7 @@ type ResultsPanelProps = {
   domainLoadingIds: number[];
   getSelectedExamIds: () => number[];
   handleSelectDomain: (domainName: string, domainId: number) => void;
+  selectedDomainName: null | string;
 };
 
 const ResultsPanel: React.FC<ResultsPanelProps> = ({
@@ -56,6 +59,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
   firmDomains,
   domainLoadingIds,
   handleSelectDomain,
+  selectedDomainName,
 }) => {
   const handleOpenDomainProfiles = (domainName: string, domainId: number) => {
     handleSelectDomain(domainName, domainId);
@@ -85,7 +89,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
               {isExpanded && (
                 <DomainsWrapper>
                   {isLoadingDomains ? (
-                    <p>Loading domains...</p>
+                    "Loading domains..."
                   ) : domains.length ? (
                     domains.map((d) => (
                       <div key={d.id}>
@@ -93,6 +97,7 @@ const ResultsPanel: React.FC<ResultsPanelProps> = ({
                           onClick={() =>
                             handleOpenDomainProfiles(d.domain, d.id)
                           }
+                          selected={selectedDomainName === d.domain}
                         >
                           {d.domain}
                         </DomainName>

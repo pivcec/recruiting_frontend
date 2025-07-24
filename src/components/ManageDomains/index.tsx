@@ -263,6 +263,7 @@ const ManageDomains: React.FC = () => {
               domainLoadingIds={domainLoadingIds}
               getSelectedExamIds={getSelectedExamIds}
               handleSelectDomain={handleSelectDomain}
+              selectedDomainName={selectedDomainName}
             />
           </TopPanel>
 

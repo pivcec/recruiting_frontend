@@ -36,7 +36,7 @@ const CloseButton = styled.button`
   cursor: pointer;
 `;
 
-const ColoredStat = styled.li<{ bgColor: string }>`
+const ColoredStat = styled.div<{ bgColor: string }>`
   background-color: ${({ bgColor }) => bgColor};
   padding: 6px 10px;
   border-radius: 4px;
@@ -112,7 +112,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ onClose, domainId }) => {
     <ModalOverlay onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <CloseButton onClick={onClose}>×</CloseButton>
-        <h3>{`Verified Emails: ${stats?.total_verified}`}</h3>
+        <h3>{`Checked Email Guesses: ${stats?.total_verified}`}</h3>
 
         {loading && <p>Loading stats...</p>}
 
@@ -120,7 +120,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ onClose, domainId }) => {
 
         {stats && (
           <>
-            <ul>
+            <div>
               {statusKeys.map((key) => {
                 const countKey = `${key}_count` as keyof EmailStats;
                 const count = stats[countKey];
@@ -133,7 +133,7 @@ const InfoModal: React.FC<InfoModalProps> = ({ onClose, domainId }) => {
                   </ColoredStat>
                 );
               })}
-            </ul>
+            </div>
           </>
         )}
       </ModalContent>
