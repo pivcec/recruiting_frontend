@@ -114,7 +114,7 @@ interface CheckAllModalProps {
   isChecking: boolean;
   onClose: () => void;
   setIsChecking: React.Dispatch<React.SetStateAction<boolean>>;
-  fetchStats: () => void;
+  fetchStats: (domainId: number, examIds: number[]) => void;
   updateFirmsDomains: () => Promise<void>;
 }
 
@@ -146,7 +146,7 @@ const CheckAllModal: React.FC<CheckAllModalProps> = ({
 
           if (data.status === "completed" || data.status === "finished") {
             clearInterval(pollingIntervalRef.current!);
-            fetchStats();
+            fetchStats(domainId, examIds);
             updateFirmsDomains();
             setCompleteCheckData(data.counts_by_pattern);
             setIsChecking(false);
@@ -214,7 +214,6 @@ const CheckAllModal: React.FC<CheckAllModalProps> = ({
                   )
                 }
               >
-                <option value="all">All</option>
                 {Object.entries(patternMap).map(([id, label]) => (
                   <option key={id} value={id}>
                     {label}

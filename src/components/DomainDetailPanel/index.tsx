@@ -1,11 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import axios from "axios";
-import EmailRow from "./EmailRow";
-import FilterBar from "./FilterBar";
-import PaginationControls from "./PaginationControls";
-import InfoModal from "./InfoModal";
-import CompleteCheckModal from "./CheckAllModal";
+import CheckAllModal from "./CheckAllModal";
 import PatternTable from "./PatternTable";
 
 const Wrapper = styled.div``;
@@ -97,8 +92,10 @@ interface PatternStat {
 }
 
 interface DomainStatsResponse {
+  profile_count: number;
   domain_id: number;
   pattern_stats: PatternStat[];
+  email_guess_count: number;
 }
 
 interface DomainDetailsPanelProps {
@@ -120,15 +117,27 @@ const DomainDetailsPanel: React.FC<DomainDetailsPanelProps> = ({
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchStats = async () => {
+  const fetchStats = async (domainId: number, examIds: number[]) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/domain-email-stats/${domainId}`);
+      const response = await fetch(`/api/domain-email-stats`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          domain_id: domainId,
+          exam_ids: examIds,
+        }),
+      });
+
       if (!response.ok) {
         throw new Error(`Error fetching stats: ${response.statusText}`);
       }
+
       const data = await response.json();
+      console.log("data", data);
       setStats(data);
     } catch (err: any) {
       setError(err.message || "Unknown error");
@@ -138,13 +147,13 @@ const DomainDetailsPanel: React.FC<DomainDetailsPanelProps> = ({
   };
 
   useEffect(() => {
-    fetchStats();
-  }, [domainId]);
+    fetchStats(domainId, examIds);
+  }, [domainId, examIds]);
 
   return (
     <Wrapper>
       {showCheckAllModal && domainName && (
-        <CompleteCheckModal
+        <CheckAllModal
           domainId={domainId}
           domainName={domainName}
           examIds={examIds}
@@ -166,9 +175,7 @@ const DomainDetailsPanel: React.FC<DomainDetailsPanelProps> = ({
                 onClick={() => setShowCheckAllModal(true)}
                 disabled={showCheckAllModal || loading}
               >
-                {showCheckAllModal
-                  ? "showCheckAllModal..."
-                  : "Check Email Guesses"}
+                {showCheckAllModal ? "showCheckAllModal..." : "Check Guesses"}
               </PrimaryButton>
             </CheckAllRow>
 
@@ -177,7 +184,7 @@ const DomainDetailsPanel: React.FC<DomainDetailsPanelProps> = ({
             </TitleRow>
           </StickyContainer>
 
-          {stats && <PatternTable stats={stats.pattern_stats} />}
+          {stats && <PatternTable stats={stats} />}
         </>
       )}
     </Wrapper>
